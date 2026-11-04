@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text as RNText, StyleSheet, ScrollView, TouchableOpacity,
-  SafeAreaView, StatusBar, TextInput, Alert, Modal, useWindowDimensions
+  SafeAreaView, StatusBar, TextInput, Alert, Modal, useWindowDimensions, useColorScheme
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -928,6 +928,7 @@ const routinePresets = [
 
 export default function App() {
   const { width: windowWidth } = useWindowDimensions();
+  const deviceColorScheme = useColorScheme();
   const isWideScreen = windowWidth >= 760;
   const [tab, setTab] = useState('Home');
   const [answers, setAnswers] = useState(defaultAnswers);
@@ -936,12 +937,31 @@ export default function App() {
   const [step, setStep] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const [language, setLanguage] = useState('en');
+  const [themeMode, setThemeMode] = useState('dark'); // dark | light | system
+  const [glassSizeMl, setGlassSizeMl] = useState(250);
+  const [glassSizeInput, setGlassSizeInput] = useState('250');
+  const [restSeconds, setRestSeconds] = useState(90);
+  const [allergies, setAllergies] = useState('');
+  const [foodPreference, setFoodPreference] = useState('No preference');
+  const [mealsPerDay, setMealsPerDay] = useState(3);
+  const [weightUnit, setWeightUnit] = useState('kg');
+  const [heightUnit, setHeightUnit] = useState('cm');
+  const [volumeUnit, setVolumeUnit] = useState('ml');
+  const [textSize, setTextSize] = useState('normal');
+  const [highContrast, setHighContrast] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [hapticsEnabled, setHapticsEnabled] = useState(true);
+  const [weeklySummaryEnabled, setWeeklySummaryEnabled] = useState(true);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportDataText, setExportDataText] = useState('');
   const [profileGender, setProfileGender] = useState('male');
   const [profileChoiceLocked, setProfileChoiceLocked] = useState(false);
   const [genderProfiles, setGenderProfiles] = useState({});
   const activeExercises = profileGender === 'female' ? womenExercises : exercises;
   const accentColor = profileGender === 'female' ? '#F28AB2' : GREEN;
-  const styles = useMemo(() => createStyles(accentColor), [accentColor]);
+  const resolvedTheme = themeMode === 'system' ? (deviceColorScheme === 'light' ? 'light' : 'dark') : themeMode;
+  const styles = useMemo(() => createStyles(accentColor, resolvedTheme), [accentColor, resolvedTheme]);
   const showAlert = (title, message) => Alert.alert(translateString(title, language), translateString(message, language));
   const [selectedTrainingDays, setSelectedTrainingDays] = useState([0, 2, 4]);
   const [calendarMonth, setCalendarMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
@@ -1011,6 +1031,24 @@ export default function App() {
           const d = JSON.parse(raw);
           setAnswers({ ...defaultAnswers, ...(d.answers || {}) });
           setLanguage(d.language === 'hu' ? 'hu' : 'en');
+          const savedTheme = ['dark', 'light', 'system'].includes(d.themeMode) ? d.themeMode : 'dark';
+          setThemeMode(savedTheme);
+          const savedGlass = Math.min(5000, Math.max(225, Number(d.glassSizeMl) || 250));
+          setGlassSizeMl(savedGlass);
+          setGlassSizeInput(String(savedGlass));
+          setRestSeconds([30, 45, 60, 90, 120, 180].includes(Number(d.restSeconds)) ? Number(d.restSeconds) : 90);
+          setAllergies(typeof d.allergies === 'string' ? d.allergies : '');
+          setFoodPreference(typeof d.foodPreference === 'string' ? d.foodPreference : 'No preference');
+          setMealsPerDay(Math.min(6, Math.max(2, Number(d.mealsPerDay) || 3)));
+          setWeightUnit(d.weightUnit === 'lb' ? 'lb' : 'kg');
+          setHeightUnit(d.heightUnit === 'in' ? 'in' : 'cm');
+          setVolumeUnit(d.volumeUnit === 'oz' ? 'oz' : 'ml');
+          setTextSize(['small', 'normal', 'large'].includes(d.textSize) ? d.textSize : 'normal');
+          setHighContrast(!!d.highContrast);
+          setReduceMotion(!!d.reduceMotion);
+          setSoundEnabled(d.soundEnabled !== false);
+          setHapticsEnabled(d.hapticsEnabled !== false);
+          setWeeklySummaryEnabled(d.weeklySummaryEnabled !== false);
           setProfileGender(d.profileGender === 'female' ? 'female' : 'male');
           setProfileChoiceLocked(d.profileChoiceLocked !== undefined ? !!d.profileChoiceLocked : !!d.profileComplete);
           setGenderProfiles(d.genderProfiles && typeof d.genderProfiles === 'object' ? d.genderProfiles : {});
@@ -1025,7 +1063,7 @@ export default function App() {
           setFoodEntries(d.foodEntries || []);
           setGoalCalories(d.goalCalories || 2400);
           setGoalProtein(d.goalProtein || 150);
-          setGoalWater(d.goalWater || 8);
+          setGoalWater(d.goalWater || Math.ceil(2000 / savedGlass));
           setGoalCarbs(d.goalCarbs || 250);
           setGoalFat(d.goalFat || 70);
           setStrengthLogs(d.strengthLogs || []);
@@ -1045,14 +1083,18 @@ export default function App() {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
       answers, profileComplete, completedDates, water, waterDate,
       weightEntries, xp, workoutLogs, foodEntries,
-      goalCalories, goalProtein, goalWater, goalCarbs, goalFat,
+      goalCalories, goalProtein, goalWater, goalCarbs, goalFat, glassSizeMl, themeMode,
+      restSeconds, allergies, foodPreference, mealsPerDay, weightUnit, heightUnit, volumeUnit,
+      textSize, highContrast, reduceMotion, soundEnabled, hapticsEnabled, weeklySummaryEnabled,
       strengthLogs, stretchDone, language, selectedTrainingDays, profileGender, profileChoiceLocked,
       genderProfiles: { ...genderProfiles, [profileGender]: { answers, profileComplete, selectedTrainingDays, goalCalories, goalProtein, goalWater, goalCarbs, goalFat } }
     })).catch(e => console.log('Save error:', e));
   }, [
     hydrated, answers, profileComplete, completedDates, water, waterDate,
     weightEntries, xp, workoutLogs, foodEntries,
-    goalCalories, goalProtein, goalWater, goalCarbs, goalFat,
+    goalCalories, goalProtein, goalWater, goalCarbs, goalFat, glassSizeMl, themeMode,
+    restSeconds, allergies, foodPreference, mealsPerDay, weightUnit, heightUnit, volumeUnit,
+    textSize, highContrast, reduceMotion, soundEnabled, hapticsEnabled, weeklySummaryEnabled,
     strengthLogs, stretchDone, language, selectedTrainingDays, profileGender, profileChoiceLocked, genderProfiles, goalCalories, goalProtein, goalWater, goalCarbs, goalFat
   ]);
 
@@ -2543,6 +2585,16 @@ export default function App() {
       <Text style={styles.eyebrow}>YOUR ACCOUNT</Text>
       <Text style={styles.pageTitle}>Profile</Text>
 
+      <TouchableOpacity
+        accessibilityRole="button"
+        onPress={() => { haptic('light'); setTab('Settings'); }}
+        style={{ backgroundColor: accentColor, borderRadius: 13, paddingVertical: 17, paddingHorizontal: 18, marginBottom: 16, alignItems: 'center' }}
+      >
+        <Text style={{ color: '#11150D', fontSize: 13, fontWeight: '900', letterSpacing: 1 }}>
+          ⚙ {language === 'hu' ? 'BEÁLLÍTÁSOK MEGNYITÁSA' : 'OPEN SETTINGS'} →
+        </Text>
+      </TouchableOpacity>
+
       {card(
         <>
           <View style={styles.avatar}>
@@ -2644,6 +2696,9 @@ export default function App() {
                 setGoalCalories(2400);
                 setGoalProtein(150);
                 setGoalWater(8);
+                setGlassSizeMl(250);
+                setGlassSizeInput('250');
+                setThemeMode('dark');
                 setGoalCarbs(250);
                 setGoalFat(70);
                 setWorkoutStarted(false);
@@ -2661,6 +2716,207 @@ export default function App() {
     </ScrollView>
   );
 
+  const applyGlassSize = () => {
+    const parsed = Math.round(Number(String(glassSizeInput).replace(',', '.')));
+    if (!Number.isFinite(parsed) || parsed < 225 || parsed > 5000) {
+      showAlert(language === 'hu' ? 'Érvénytelen pohárméret' : 'Invalid glass size', language === 'hu' ? 'A pohár mérete 225 és 5000 ml között lehet.' : 'Glass size must be between 225 and 5000 ml.');
+      setGlassSizeInput(String(glassSizeMl));
+      return;
+    }
+    setGlassSizeMl(parsed);
+    setGoalWater(Math.max(1, Math.ceil(2000 / parsed)));
+    setGlassSizeInput(String(parsed));
+    haptic('success');
+  };
+
+  const settingsScreen = () => {
+    const isHu = language === 'hu';
+    const settingTitle = (hu, en) => isHu ? hu : en;
+    const pill = (label, active, onPress) => (
+      <TouchableOpacity onPress={onPress} style={[styles.chip, active && styles.chipActive, { marginRight: 7, marginBottom: 7 }]}>
+        <Text style={[styles.chipText, active && { color: '#11150D' }]}>{label}</Text>
+      </TouchableOpacity>
+    );
+    const toggleRow = (title, description, value, setter) => (
+      <TouchableOpacity onPress={() => setter(!value)} style={[styles.row, { paddingVertical: 12, alignItems: 'center' }]}>
+        <View style={{ flex: 1, paddingRight: 12 }}>
+          <Text style={styles.cardTitle}>{title}</Text>
+          {!!description && <Text style={styles.muted}>{description}</Text>}
+        </View>
+        <View style={{ width: 48, height: 28, borderRadius: 20, backgroundColor: value ? accentColor : '#50564B', justifyContent: 'center', padding: 3 }}>
+          <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: value ? '#11150D' : '#D5D8D0', alignSelf: value ? 'flex-end' : 'flex-start' }} />
+        </View>
+      </TouchableOpacity>
+    );
+    const weeklyWorkouts = (workoutLogs || []).filter(log => {
+      const date = new Date(log.date || log.completedAt || 0);
+      return !Number.isNaN(date.getTime()) && (Date.now() - date.getTime()) <= 7 * 86400000;
+    }).length;
+    const todayMeals = (foodEntries || []).filter(entry => entry.date === today).length;
+    const exportPayload = {
+      exportedAt: new Date().toISOString(), profileGender, answers, profileComplete,
+      completedDates, water, waterDate, weightEntries, xp, workoutLogs, foodEntries,
+      settings: { language, themeMode, glassSizeMl, restSeconds, allergies, foodPreference,
+        mealsPerDay, weightUnit, heightUnit, volumeUnit, textSize, highContrast,
+        reduceMotion, soundEnabled, hapticsEnabled, weeklySummaryEnabled }
+    };
+
+    return (
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28 }}>
+        <Text style={styles.eyebrow}>BIFIT PERSONALIZATION</Text>
+        <Text style={styles.pageTitle}>{settingTitle('Beállítások', 'Settings')}</Text>
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('1. Megjelenés', '1. Appearance')}</Text>
+          <Text style={styles.muted}>{settingTitle('Válaszd ki, hogyan jelenjen meg az alkalmazás.', 'Choose how the app should look.')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 }}>
+            {pill(settingTitle('Sötét', 'Dark'), themeMode === 'dark', () => setThemeMode('dark'))}
+            {pill(settingTitle('Világos', 'Light'), themeMode === 'light', () => setThemeMode('light'))}
+            {pill(settingTitle('Eszköz követése', 'Follow device'), themeMode === 'system', () => setThemeMode('system'))}
+          </View>
+          {themeMode === 'system' && <Text style={styles.muted}>{settingTitle('Az alkalmazás a telefon megjelenési beállítását követi.', 'The app follows your device appearance setting.')}</Text>}
+        </>)}
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('2. Nyelv', '2. Language')}</Text>
+          <View style={styles.row}>
+            {button('🇬🇧 English', () => setLanguage('en'), language !== 'en')}
+            {button('🇭🇺 Magyar', () => setLanguage('hu'), language !== 'hu')}
+          </View>
+        </>)}
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('3. Vízbevitel', '3. Water Intake')}</Text>
+          <Text style={styles.muted}>{settingTitle('Pohárméret és napi cél. A cél egy hozzávetőleges 2000 ml-es napi mennyiségből számolódik, és személyre szabottan módosítható.', 'Glass size and daily goal. The goal is calculated from an approximate 2000 ml daily target and can be adjusted to your needs.')}</Text>
+          <TextInput value={glassSizeInput} onChangeText={setGlassSizeInput} keyboardType="numeric" placeholder="250" placeholderTextColor={MUTED} style={styles.input} />
+          <Text style={styles.muted}>{settingTitle(`Jelenlegi méret: ${glassSizeMl} ml · Napi cél: ${goalWater} pohár (${goalWater * glassSizeMl} ml)`, `Current size: ${glassSizeMl} ml · Daily goal: ${goalWater} glasses (${goalWater * glassSizeMl} ml)`)}</Text>
+          {button(settingTitle('POHÁRMÉRET MENTÉSE', 'SAVE GLASS SIZE'), applyGlassSize)}
+          <Text style={[styles.muted, { marginTop: 8 }]}>{settingTitle('A napi cél becslés, nem orvosi előírás.', 'The daily target is an estimate, not medical advice.')}</Text>
+        </>)}
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('4. Edzési preferenciák', '4. Workout Preferences')}</Text>
+          <Text style={styles.muted}>{settingTitle('Válaszd ki az edzésnapokat. A heti terv ezeket a napokat használja.', 'Choose your training days. Your weekly schedule uses these days.')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 }}>
+            {dayNames.map((day, index) => pill(day.slice(0, 3), selectedTrainingDays.includes(index), () => {
+              setSelectedTrainingDays(prev => {
+                const next = prev.includes(index) ? prev.filter(x => x !== index) : [...prev, index].sort((a,b) => a-b);
+                if (next.length < 2) return prev;
+                setAnswers(a => ({ ...a, days: String(next.length) }));
+                return next;
+              });
+            }))}
+          </View>
+          <Text style={styles.muted}>{settingTitle(`${selectedTrainingDays.length} edzésnap hetente`, `${selectedTrainingDays.length} training days per week`)}</Text>
+          <Text style={[styles.cardTitle, { marginTop: 12 }]}>{settingTitle('Pihenőidő a sorozatok között', 'Rest time between sets')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+            {[30,45,60,90,120,180].map(v => pill(`${v} sec`, restSeconds === v, () => setRestSeconds(v)))}
+          </View>
+          <Text style={[styles.cardTitle, { marginTop: 12 }]}>{settingTitle('Felszerelés', 'Equipment')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+            {['Gym', 'Home with equipment', 'Home without equipment'].map(v => pill(settingTitle(v === 'Gym' ? 'Edzőterem' : v === 'Home with equipment' ? 'Otthon, eszközökkel' : 'Otthon, eszköz nélkül', v), answers.equipment === v, () => setAnswers(a => ({ ...a, equipment: v }))))}
+          </View>
+        </>)}
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('5. Táplálkozási preferenciák', '5. Nutrition Preferences')}</Text>
+          <Text style={styles.muted}>{settingTitle('Allergiák és étkezési preferenciák mentése a profilodhoz.', 'Save allergies and food preferences to your profile.')}</Text>
+          <Text style={[styles.cardTitle, { marginTop: 12 }]}>{settingTitle('Allergiák / kerülendő összetevők', 'Allergies / ingredients to avoid')}</Text>
+          <TextInput value={allergies} onChangeText={setAllergies} placeholder={settingTitle('Pl. mogyoró, tej', 'e.g. peanuts, milk')} placeholderTextColor={MUTED} style={styles.input} />
+          <Text style={[styles.cardTitle, { marginTop: 10 }]}>{settingTitle('Étkezési preferencia', 'Food preference')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+            {[
+              ['No preference', settingTitle('Nincs megkötés', 'No preference')],
+              ['Vegetarian', settingTitle('Vegetáriánus', 'Vegetarian')],
+              ['Vegan', settingTitle('Vegán', 'Vegan')],
+              ['Pescatarian', settingTitle('Peszkatáriánus', 'Pescatarian')]
+            ].map(([v,l]) => pill(l, foodPreference === v, () => setFoodPreference(v)))}
+          </View>
+          <Text style={[styles.cardTitle, { marginTop: 10 }]}>{settingTitle('Étkezések száma naponta', 'Meals per day')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+            {[2,3,4,5,6].map(v => pill(String(v), mealsPerDay === v, () => setMealsPerDay(v)))}
+          </View>
+          <Text style={styles.muted}>{settingTitle('Ezeket a preferenciákat elmentjük. Az ételajánlások allergénadatainak teljes szűrése külön adatbázis-fejlesztést igényel, ezért kérjük, mindig ellenőrizd az összetevőket.', 'These preferences are saved to your profile. Full allergen filtering requires ingredient-level data, so always check food labels.')}</Text>
+        </>)}
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('6. Mértékegységek', '6. Units')}</Text>
+          <Text style={styles.muted}>{settingTitle('Válaszd ki a számodra kényelmes mértékegységeket.', 'Choose your preferred measurement units.')}</Text>
+          <Text style={[styles.cardTitle, { marginTop: 10 }]}>{settingTitle('Testsúly', 'Weight')}</Text>
+          <View style={styles.row}>{pill('kg', weightUnit === 'kg', () => setWeightUnit('kg'))}{pill('lb', weightUnit === 'lb', () => setWeightUnit('lb'))}</View>
+          <Text style={styles.cardTitle}>{settingTitle('Magasság', 'Height')}</Text>
+          <View style={styles.row}>{pill('cm', heightUnit === 'cm', () => setHeightUnit('cm'))}{pill('in', heightUnit === 'in', () => setHeightUnit('in'))}</View>
+          <Text style={styles.cardTitle}>{settingTitle('Folyadék', 'Volume')}</Text>
+          <View style={styles.row}>{pill('ml', volumeUnit === 'ml', () => setVolumeUnit('ml'))}{pill('oz', volumeUnit === 'oz', () => setVolumeUnit('oz'))}</View>
+          <Text style={styles.muted}>{settingTitle('A választások elmentődnek. A profil alapadatai jelenleg kg/cm egységben tárolódnak.', 'Preferences are saved. Profile measurements are currently stored in kg/cm internally.')}</Text>
+        </>)}
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('7. Akadálymentesség', '7. Accessibility')}</Text>
+          <Text style={styles.cardTitle}>{settingTitle('Szövegméret', 'Text size')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+            {[
+              ['small', settingTitle('Kicsi', 'Small')],
+              ['normal', settingTitle('Normál', 'Normal')],
+              ['large', settingTitle('Nagy', 'Large')]
+            ].map(([v,l]) => pill(l, textSize === v, () => setTextSize(v)))}
+          </View>
+          {toggleRow(settingTitle('Erősebb kontraszt', 'High contrast'), settingTitle('Kontrasztosabb felületek', 'Increase interface contrast'), highContrast, setHighContrast)}
+          {toggleRow(settingTitle('Animációk csökkentése', 'Reduce animations'), settingTitle('Kevesebb mozgó effekt', 'Reduce motion effects'), reduceMotion, setReduceMotion)}
+          <Text style={styles.muted}>{settingTitle('A szövegméret, kontraszt és animációs preferencia mentésre kerül. Egyes képernyőkön a megjelenés fokozatosan kerül alkalmazásra.', 'Text size, contrast and motion preferences are saved. Their visual application may vary by screen.')}</Text>
+        </>)}
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('8. Hangok és rezgések', '8. Sounds & Haptics')}</Text>
+          {toggleRow(settingTitle('Hanghatások', 'Sound effects'), settingTitle('Hangok engedélyezése, ha támogatottak.', 'Allow sound effects where supported.'), soundEnabled, setSoundEnabled)}
+          {toggleRow(settingTitle('Rezgés', 'Haptic feedback'), settingTitle('Gombnyomások finom rezgése, ha az eszköz támogatja.', 'Light vibration on interactions where supported.'), hapticsEnabled, setHapticsEnabled)}
+          <Text style={styles.muted}>{settingTitle('A rezgésbeállítás az eszköz által támogatott rezgéseket vezérli. Hanghatások jelenleg nem minden platformon érhetők el.', 'Haptics control supported device vibrations. Sound effects are not available on every platform yet.')}</Text>
+        </>)}
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('9. Heti összefoglaló', '9. Weekly Summary')}</Text>
+          {toggleRow(settingTitle('Heti aktivitási összefoglaló', 'Weekly activity summary'), settingTitle('Az összefoglaló megjelenítése itt a Beállításokban.', 'Show your activity summary here in Settings.'), weeklySummaryEnabled, setWeeklySummaryEnabled)}
+          {weeklySummaryEnabled && <>
+            <View style={styles.profileRow}><Text style={styles.muted}>{settingTitle('Edzések az elmúlt 7 napban', 'Workouts in the last 7 days')}</Text><Text style={styles.profileValue}>{weeklyWorkouts}</Text></View>
+            <View style={styles.profileRow}><Text style={styles.muted}>{settingTitle('Mai naplózott étkezések', 'Meals logged today')}</Text><Text style={styles.profileValue}>{todayMeals}</Text></View>
+            <View style={styles.profileRow}><Text style={styles.muted}>{settingTitle('Összes XP', 'Total XP')}</Text><Text style={styles.profileValue}>{xp}</Text></View>
+          </>}
+        </>)}
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('10. Adatvédelem és adatok', '10. Privacy & Data')}</Text>
+          <Text style={styles.muted}>{settingTitle('Az adataid ezen az eszközön, helyi tárhelyen kerülnek mentésre.', 'Your data is stored locally on this device.')}</Text>
+          {button(settingTitle('ADATOK EXPORTÁLÁSA', 'EXPORT MY DATA'), () => {
+            setExportDataText(JSON.stringify(exportPayload, null, 2));
+            setExportModalVisible(true);
+          })}
+          {button(settingTitle('VISSZA A PROFILHOZ AZ ADATOK TÖRLÉSÉHEZ', 'GO TO PROFILE TO RESET APP DATA'), () => setTab('Profile'), true)}
+        </>)}
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('11. A BIFIT-ről', '11. About BIFIT')}</Text>
+          <Text style={styles.bigNumber}>BIFIT</Text>
+          <Text style={styles.muted}>Version 2.1</Text>
+          <Text style={styles.muted}>{settingTitle('Személyes fitneszplatform edzéskövetéshez, táplálkozáshoz és fejlődéshez.', 'Your personal fitness platform for training, nutrition and progress tracking.')}</Text>
+          <Text style={styles.muted}>{settingTitle('Az alkalmazásban szereplő célértékek becslések, nem helyettesítik szakember tanácsát.', 'Targets shown in the app are estimates and do not replace professional advice.')}</Text>
+        </>)}
+
+        <Modal visible={exportModalVisible} animationType="slide" transparent onRequestClose={() => setExportModalVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', padding: 18 }}>
+            <View style={[styles.card, { maxHeight: '85%' }]}>
+              <Text style={styles.cardTitle}>{settingTitle('Adatok exportálása', 'Export data')}</Text>
+              <Text style={styles.muted}>{settingTitle('Másold ki az alábbi JSON-adatokat, és mentsd el biztonságos helyre.', 'Copy the JSON data below and save it somewhere safe.')}</Text>
+              <TextInput value={exportDataText} editable={false} multiline selectTextOnFocus style={[styles.input, { minHeight: 260, textAlignVertical: 'top' }]} />
+              {button(settingTitle('BEZÁRÁS', 'CLOSE'), () => setExportModalVisible(false))}
+            </View>
+          </View>
+        </Modal>
+
+        {button(settingTitle('VISSZA A PROFILHOZ', 'BACK TO PROFILE'), () => setTab('Profile'), true)}
+      </ScrollView>
+    );
+  };
+
   const screens = {
     Home: homeScreen,
     Workout: workoutScreen,
@@ -2669,7 +2925,8 @@ export default function App() {
     Calendar: calendarScreen,
     Coach: coachScreen,
     Progress: progressScreen,
-    Profile: profileScreen
+    Profile: profileScreen,
+    Settings: settingsScreen
   };
 
   const tabs = [
@@ -2686,7 +2943,7 @@ export default function App() {
     return (
       <LanguageContext.Provider value={language}>
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={BG} />
+        <StatusBar barStyle={resolvedTheme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={resolvedTheme === 'light' ? '#F4F6F1' : BG} />
         <View style={styles.loading}>
           <Text style={styles.logo}>BIFIT</Text>
           <Text style={styles.muted}>Loading your fitness platform...</Text>
@@ -2699,7 +2956,7 @@ export default function App() {
   return (
     <LanguageContext.Provider value={language}>
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={BG} />
+      <StatusBar barStyle={resolvedTheme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={resolvedTheme === 'light' ? '#F4F6F1' : BG} />
       <View style={styles.content}>
         {showPersonalization ? personalizationScreen() :
           selectedExercise ? (
@@ -2807,10 +3064,10 @@ export default function App() {
                 setTab(t.id);
               }}
             >
-              <Text style={[styles.tabIcon, tab === t.id && { color: GREEN }]}>
+              <Text style={[styles.tabIcon, tab === t.id && { color: accentColor }]}>
                 {t.icon}
               </Text>
-              <Text style={[styles.tabLabel, tab === t.id && { color: GREEN }]}>
+              <Text style={[styles.tabLabel, tab === t.id && { color: accentColor }]}>
                 {t.label}
               </Text>
             </TouchableOpacity>
@@ -2978,11 +3235,16 @@ function Macro({ styles, label, value, goal, unit }) {
   );
 }
 
-const createStyles = (accent = GREEN) => StyleSheet.create({
+const createStyles = (accent = GREEN, theme = 'dark') => {
+  const BG = theme === 'light' ? '#F4F6F1' : '#10120F';
+  const CARD = theme === 'light' ? '#FFFFFF' : '#1C201A';
+  const MUTED = theme === 'light' ? '#626B5D' : '#92998C';
+  const primaryText = theme === 'light' ? '#182016' : '#FFFFFF';
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: BG, width: '100%' },
   genderChoiceRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   genderChoice: { flex: 1, minWidth: 0, borderWidth: 1, borderColor: '#3A4036', borderRadius: 13, padding: 13, backgroundColor: '#171A15' },
-  genderChoiceTitle: { color: 'white', fontSize: 14, fontWeight: '900', marginBottom: 6 },
+  genderChoiceTitle: { color: primaryText, fontSize: 14, fontWeight: '900', marginBottom: 6 },
   content: { flex: 1, minHeight: 0, width: '100%', maxWidth: 1240, alignSelf: 'center', paddingHorizontal: 18, paddingTop: 14 },
   homeScrollContent: { paddingBottom: 24 },
   homeFeatureRow: { width: '100%', flexDirection: 'column', gap: 0 },
@@ -2996,20 +3258,20 @@ const createStyles = (accent = GREEN) => StyleSheet.create({
   homeLogo: { fontSize: 50, color: accent, letterSpacing: 3 },
   green: { color: accent, fontWeight: '900' },
   eyebrow: { fontSize: 9, color: accent, letterSpacing: 2, fontWeight: '900', marginBottom: 8 },
-  pageTitle: { fontSize: 30, fontWeight: '900', color: 'white', marginTop: 8, marginBottom: 7 },
-  heroTitle: { fontSize: 25, fontWeight: '900', color: 'white', marginVertical: 10 },
-  featureTitle: { fontSize: 25, fontWeight: '900', color: 'white', marginVertical: 10 },
-  heroDescription: { fontSize: 13, color: '#CBD2C4', lineHeight: 20, marginBottom: 10 },
+  pageTitle: { fontSize: 30, fontWeight: '900', color: primaryText, marginTop: 8, marginBottom: 7 },
+  heroTitle: { fontSize: 25, fontWeight: '900', color: primaryText, marginVertical: 10 },
+  featureTitle: { fontSize: 25, fontWeight: '900', color: primaryText, marginVertical: 10 },
+  heroDescription: { fontSize: 13, color: theme === 'light' ? '#465043' : '#CBD2C4', lineHeight: 20, marginBottom: 10 },
   hero: { backgroundColor: '#252F20', borderRadius: 20, padding: 21, marginVertical: 20, overflow: 'hidden' },
   heroDecoration: { position: 'absolute', right: -5, bottom: -20, fontSize: 60, fontWeight: '900', color: '#FFFFFF08' },
   muted: { fontSize: 12, color: MUTED, lineHeight: 19 },
   card: { backgroundColor: CARD, borderRadius: 17, padding: 17, marginBottom: 14 },
   sectionHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 17, marginBottom: 12 },
-  sectionTitle: { fontSize: 16, color: 'white', fontWeight: '900' },
+  sectionTitle: { fontSize: 16, color: primaryText, fontWeight: '900' },
   statsRow: { flexDirection: 'row', gap: 9, marginVertical: 15 },
   statCard: { flex: 1, backgroundColor: CARD, borderRadius: 14, padding: 12 },
   statIcon: { fontSize: 20, marginBottom: 8 },
-  statNumber: { fontSize: 19, color: 'white', fontWeight: '900', marginVertical: 3 },
+  statNumber: { fontSize: 19, color: primaryText, fontWeight: '900', marginVertical: 3 },
   bigNumber: { fontSize: 27, color: accent, fontWeight: '900', marginVertical: 8 },
   track: { height: 7, backgroundColor: '#343A30', borderRadius: 6, overflow: 'hidden', marginVertical: 12 },
   fill: { height: 7, backgroundColor: accent, borderRadius: 6 },
@@ -3021,19 +3283,19 @@ const createStyles = (accent = GREEN) => StyleSheet.create({
   avatarText: { fontSize: 18, color: accent, fontWeight: '900' },
   coachCard: { backgroundColor: CARD, borderRadius: 15, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 15 },
   coachIcon: { fontSize: 28, color: accent, marginBottom: 10 },
-  cardTitle: { fontSize: 14, color: 'white', fontWeight: '900', marginBottom: 5 },
+  cardTitle: { fontSize: 14, color: primaryText, fontWeight: '900', marginBottom: 5 },
   weekRow: { flexDirection: 'row', justifyContent: 'space-between' },
   weekDay: { alignItems: 'center', gap: 8 },
   dayDot: { width: 31, height: 31, borderRadius: 16, backgroundColor: '#30352C', alignItems: 'center', justifyContent: 'center' },
   dayDotDone: { backgroundColor: accent },
-  dayDotText: { fontSize: 11, color: 'white', fontWeight: '900' },
+  dayDotText: { fontSize: 11, color: primaryText, fontWeight: '900' },
   exercise: { backgroundColor: CARD, borderRadius: 13, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 9 },
   exerciseEmoji: { fontSize: 23 },
   exerciseCheck: { fontSize: 22, color: accent },
-  input: { backgroundColor: CARD, borderWidth: 1, borderColor: '#343A30', borderRadius: 11, padding: 15, color: 'white', fontSize: 14, marginTop: 9 },
+  input: { backgroundColor: CARD, borderWidth: 1, borderColor: '#343A30', borderRadius: 11, padding: 15, color: primaryText, fontSize: 14, marginTop: 9 },
   optionCard: { backgroundColor: CARD, borderWidth: 1, borderColor: '#30352C', borderRadius: 13, padding: 17, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   optionSelected: { borderColor: accent, backgroundColor: '#303D25' },
-  optionText: { color: 'white', fontWeight: '800', fontSize: 14 },
+  optionText: { color: primaryText, fontWeight: '800', fontSize: 14 },
   progressRow: { flexDirection: 'row', gap: 5, marginVertical: 18 },
   stepBar: { flex: 1, height: 5, borderRadius: 5 },
   profileRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#30352C' },
@@ -3057,14 +3319,14 @@ const createStyles = (accent = GREEN) => StyleSheet.create({
   comingSoonContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 },
   comingSoonContent: { width: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: CARD, borderRadius: 22, padding: 28, minHeight: 380 },
   comingSoonIcon: { fontSize: 55, color: accent, marginBottom: 25 },
-  comingSoonTitle: { fontSize: 30, fontWeight: '900', color: 'white', letterSpacing: 3, marginBottom: 12 },
+  comingSoonTitle: { fontSize: 30, fontWeight: '900', color: primaryText, letterSpacing: 3, marginBottom: 12 },
   comingSoonHeading: { fontSize: 23, fontWeight: '900', color: accent, marginBottom: 16 },
-  comingSoonDescription: { fontSize: 14, color: '#CBD2C4', lineHeight: 24, textAlign: 'center', marginBottom: 25 },
+  comingSoonDescription: { fontSize: 14, color: theme === 'light' ? '#465043' : '#CBD2C4', lineHeight: 24, textAlign: 'center', marginBottom: 25 },
   comingSoonBadge: { backgroundColor: '#303D25', borderRadius: 20, paddingVertical: 10, paddingHorizontal: 16 },
   comingSoonBadgeText: { color: accent, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   daySelector: { backgroundColor: CARD, borderRadius: 12, padding: 13, marginRight: 8, minWidth: 68, alignItems: 'center', borderWidth: 1, borderColor: '#30352C' },
   daySelectorActive: { backgroundColor: accent, borderColor: accent },
-  daySelectorText: { color: 'white', fontWeight: '900', fontSize: 13 },
+  daySelectorText: { color: primaryText, fontWeight: '900', fontSize: 13 },
   daySelectorSub: { color: MUTED, fontSize: 8, fontWeight: '900', marginTop: 5 },
   recommendationCard: { backgroundColor: CARD, borderRadius: 15, padding: 15, marginBottom: 10 },
   foodInfoButton: { backgroundColor: '#303D25', borderRadius: 9, paddingVertical: 11, paddingHorizontal: 12, flex: 1, alignItems: 'center' },
@@ -3089,16 +3351,16 @@ const createStyles = (accent = GREEN) => StyleSheet.create({
   groupGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   groupChip: { backgroundColor: '#30352C', borderRadius: 18, paddingVertical: 9, paddingHorizontal: 12 },
   groupChipActive: { backgroundColor: accent },
-  groupChipText: { color: 'white', fontSize: 11, fontWeight: '800' },
+  groupChipText: { color: primaryText, fontSize: 11, fontWeight: '800' },
   timerNumber: { fontSize: 48, color: accent, fontWeight: '900', textAlign: 'center', marginVertical: 15 },
   dividerLine: { height: 1, backgroundColor: '#343A30', marginVertical: 15 },
   smallNote: { fontSize: 11, color: MUTED, lineHeight: 19, marginVertical: 15 },
   infoToggle: { backgroundColor: CARD, borderRadius: 14, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  instructionLine: { color: '#CBD2C4', fontSize: 12, lineHeight: 21, marginBottom: 7 },
+  instructionLine: { color: theme === 'light' ? '#465043' : '#CBD2C4', fontSize: 12, lineHeight: 21, marginBottom: 7 },
   miniChartValue: { color: accent, fontSize: 9, fontWeight: '900' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', marginTop: 18 },
   calendarCell: { width: '14.2857%', height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 9, marginBottom: 3 },
-  calendarCellText: { color: 'white', fontSize: 12, fontWeight: '800' },
+  calendarCellText: { color: primaryText, fontSize: 12, fontWeight: '800' },
   calendarWeekLabel: { color: MUTED, height: 28, textAlign: 'center', textAlignVertical: 'center' },
   calendarCellSelected: { backgroundColor: accent },
   calendarCellToday: { borderWidth: 1, borderColor: accent },
@@ -3107,4 +3369,5 @@ const createStyles = (accent = GREEN) => StyleSheet.create({
   calendarPlanned: { backgroundColor: '#8AA7F5' },
   calendarMissed: { backgroundColor: '#E58B7F' },
   calendarLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, flexWrap: 'wrap' }
-});
+  });
+};
