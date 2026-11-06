@@ -12,6 +12,7 @@ const MUTED = '#92998C';
 const STORAGE_KEY = '@aifit_user_data_v4';
 
 const LanguageContext = React.createContext('en');
+const AccessibilityContext = React.createContext({ textSize: 'normal', highContrast: false, reduceMotion: false });
 const HU = {
   'YOUR PERSONAL FITNESS PLATFORM':'A TE SZEMÉLYES FITNESZPLATFORMOD',
   'Your journey starts here. 💪':'Itt kezdődik az utad. 💪',
@@ -83,7 +84,7 @@ const HU = {
   'Your fitness profile':'Fitneszprofilod', 'Your personal information and goals.':'Személyes adataid és céljaid.',
   'Complete your profile to personalize your experience.':'Töltsd ki a profilod a személyre szabott élményért.',
   'EDIT PROFILE':'PROFIL SZERKESZTÉSE', 'SET UP MY PROFILE':'PROFIL BEÁLLÍTÁSA', 'Goal':'Cél', 'Body type':'Testalkat', 'Age':'Életkor', 'Height':'Magasság', 'Weight':'Testsúly', 'Experience':'Edzettségi szint', 'Training days':'Edzésnapok', 'Equipment':'Felszerelés',
-  'Your account level':'Fiókszinted', 'Settings':'Beállítások', 'APP':'ALKALMAZÁS', 'Version 2.0 · Your personal fitness platform.':'2.0 verzió · Személyes fitneszplatform.',
+  'Your account level':'Fiókszinted', 'Settings':'Beállítások', 'APP':'ALKALMAZÁS', 'Version 2.2 · Your personal fitness platform.':'2.2 verzió · Személyes fitneszplatform.',
   'VIEW MY PROGRESS →':'FEJLŐDÉSEM MEGTEKINTÉSE →', 'OPEN AI COACH →':'AI EDZŐ MEGNYITÁSA →', 'RESET APP DATA':'ALKALMAZÁS ADATAINAK TÖRLÉSE',
   'HOME':'KEZDŐLAP', 'Home':'Kezdőlap', 'Workout':'Edzés', 'Nutrition':'Táplálkozás', 'Stretch':'Nyújtás', 'Calendar':'Naptár',
   'PERSONALIZATION':'SZEMÉLYRE SZABÁS', 'CLOSE ✕':'BEZÁRÁS ✕', 'STEP':'LÉPÉS', 'OF':'/',
@@ -209,6 +210,8 @@ Object.assign(HU, {
   'Serving size / Recommended portion':'Adagméret / Ajánlott adag','What can it support?':'Miben segíthet?','Muscle building':'Izomépítés','Recovery':'Regeneráció','Training energy':'Edzésenergia','Everyday energy':'Mindennapi energia','Satiety':'Jóllakottság','Weight gain support':'Tömegnövelés támogatása','Convenient snack':'Praktikus nasi','Everyday health':'Mindennapi egészség','Convenient meal':'Praktikus étkezés','Why is it useful?':'Miért hasznos?','Key nutrients':'Fontos tápanyagok','When can you eat it?':'Mikor fogyaszthatod?','Things to know':'Amire érdemes figyelni','Alternatives':'Alternatívák','BIFIT SMART NUTRITION':'BIFIT OKOS TÁPLÁLKOZÁS','Protein':'Fehérje','Carbs':'Szénhidrát','Fat':'Zsír','kcal':'kcal',
   'Nutrition values are estimates for the stated example portion. Brands, recipes and cooking methods change the numbers. Food does not cause bulking or cutting by itself; your overall intake and activity matter. For custom entries, information is not verified.':'A tápértékek a megadott példaadagra vonatkozó becslések. A márka, a recept és az elkészítés módja módosítja az értékeket. Önmagában egy étel nem okoz tömegelést vagy szálkásítást; a teljes napi bevitel és aktivitás számít. Az egyéni bejegyzések adatai nincsenek ellenőrizve.',
   '+ ADD THIS FOOD TO DIARY':'+ ÉTEL HOZZÁADÁSA A NAPLÓHOZ',
+  'Food database search':'Ételadatbázis kereső','GLOBAL FOOD SEARCH':'NAGY ÉTELADATBÁZIS','SEARCH FOODS →':'ÉTELEK KERESÉSE →','SEARCHING...':'KERESÉS...','ADD TO DIARY':'NAPLÓHOZ ADÁS','SAVE FOOD':'ÉTEL MENTÉSE','My saved foods':'Mentett ételeim',
+  'Sound Effects':'Hanghatások','Sound effects':'Hanghatások','TEST SOUND':'HANG TESZTELÉSE','Allow sound effects where supported.':'Hanghatások engedélyezése, ha támogatottak.','Play short sounds for button presses and key events.':'Rövid hangjelzések gombnyomáskor és fontos eseményeknél.','Text size':'Szövegméret','High contrast':'Erősebb kontraszt','Reduce animations':'Animációk csökkentése','Small':'Kicsi','Normal':'Normál','Large':'Nagy',
   'Gym':'Edzőterem','Home equipment':'Otthoni felszerelés','No equipment':'Eszköz nélkül','Home with equipment':'Otthon, felszereléssel','Home without equipment':'Otthon, felszerelés nélkül',
   'Check your age':'Ellenőrizd az életkorod','Enter an age between 13 and 100.':'13 és 100 év közötti életkort adj meg.','Check your height':'Ellenőrizd a magasságod','Enter a height between 100 and 250 cm.':'100 és 250 cm közötti magasságot adj meg.',
   'Check your weight':'Ellenőrizd a testsúlyod','Enter a valid weight.':'Adj meg érvényes testsúlyt.','Choose your training days':'Válaszd ki az edzésnapjaidat','Please select exactly':'Pontosan ennyi napot válassz ki:',
@@ -259,7 +262,7 @@ Object.assign(HU, {
   'No strength records for this exercise yet.':'Ehhez a gyakorlathoz még nincs rögzített erőnléti adat.',
   'Choose exercise to view':'Válassz gyakorlatot a megtekintéshez', 'Log your strength progress':'Rögzítsd az erőnléti fejlődésedet',
   'Your fitness profile':'Fitneszprofilod', 'Your personal information and goals.':'Személyes adataid és céljaid.',
-  'Version 2.0 · Your personal fitness platform.':'2.0 verzió · Személyes fitneszplatform.',
+  'Version 2.2 · Your personal fitness platform.':'2.2 verzió · Személyes fitneszplatform.',
   'Build mobility, recover and move comfortably.':'Fejleszd a mobilitásod, regenerálódj és mozogj kényelmesen.',
   'Track your food and understand your daily intake.':'Kövesd az étkezéseidet és ismerd meg a napi tápanyagbeviteledet.',
   'Build strength. Track progress. Improve every day.':'Építs erőt. Kövesd a fejlődésed. Fejlődj minden nap.',
@@ -287,12 +290,19 @@ const translateString = (value, language) => {
   });
   return result;
 };
-function Text({ children, ...props }) {
+function Text({ children, style, ...props }) {
   const language = React.useContext(LanguageContext);
+  const accessibility = React.useContext(AccessibilityContext);
   const translated = React.Children.map(children, child =>
     typeof child === 'string' ? translateString(child, language) : child
   );
-  return <RNText {...props}>{translated}</RNText>;
+  const baseStyle = StyleSheet.flatten(style) || {};
+  const scale = accessibility.textSize === 'large' ? 1.18 : accessibility.textSize === 'small' ? 0.9 : 1;
+  const scaledStyle = scale === 1 ? style : [style, {
+    ...(baseStyle.fontSize ? { fontSize: Math.round(baseStyle.fontSize * scale) } : {}),
+    ...(baseStyle.lineHeight ? { lineHeight: Math.round(baseStyle.lineHeight * scale) } : {})
+  }];
+  return <RNText {...props} style={scaledStyle}>{translated}</RNText>;
 }
 
 
@@ -311,19 +321,6 @@ const formatDate = (key, locale = 'en-US') => {
     month: 'short',
     day: 'numeric'
   });
-};
-
-const haptic = (type = 'light') => {
-  try {
-    if (typeof navigator === 'undefined' || !navigator.vibrate) return;
-    const patterns = {
-      light: 10,
-      success: [20, 40, 30],
-      warning: [40, 50, 40],
-      error: [70, 40, 70]
-    };
-    navigator.vibrate(patterns[type] || patterns.light);
-  } catch (e) {}
 };
 
 const defaultAnswers = {
@@ -926,13 +923,76 @@ const routinePresets = [
   { name: 'Rest Day Recovery', groups: ['Back', 'Hips', 'Hamstrings', 'Glutes', 'Calves'] }
 ];
 
+
+// Search metadata includes important secondary muscles so muscle-based search
+// can find compound movements as well as direct isolation exercises.
+const exerciseMuscleMetadata = {
+  'Bench press': ['Chest','Triceps','Shoulders'],
+  'Incline dumbbell press': ['Chest','Shoulders','Triceps'],
+  'Push-ups': ['Chest','Triceps','Shoulders','Core'],
+  'Cable fly': ['Chest','Shoulders'],
+  'Lat pulldown': ['Back','Biceps','Forearms'],
+  'Seated cable row': ['Back','Biceps','Forearms'],
+  'Pull-ups': ['Back','Biceps','Forearms','Core'],
+  'Dumbbell row': ['Back','Biceps','Forearms'],
+  'Shoulder press': ['Shoulders','Triceps','Core'],
+  'Lateral raises': ['Shoulders'],
+  'Bicep curls': ['Biceps','Forearms'],
+  'Hammer curls': ['Biceps','Forearms'],
+  'Tricep pushdown': ['Triceps'],
+  'Tricep dips': ['Triceps','Chest','Shoulders'],
+  'Squats': ['Quadriceps','Glutes','Hamstrings','Core'],
+  'Goblet squat': ['Quadriceps','Glutes','Core'],
+  'Leg press': ['Quadriceps','Glutes','Hamstrings'],
+  'Romanian deadlift': ['Hamstrings','Glutes','Back'],
+  'Lunges': ['Quadriceps','Glutes','Hamstrings','Core'],
+  'Plank': ['Core','Shoulders'],
+  'Crunches': ['Core'],
+  'Leg raises': ['Core'],
+  'Mountain climbers': ['Core','Shoulders','Cardio'],
+  'Deadlift': ['Back','Glutes','Hamstrings','Forearms'],
+  'Barbell squat': ['Quadriceps','Glutes','Hamstrings','Core'],
+  'Bulgarian split squat': ['Quadriceps','Glutes','Hamstrings','Core'],
+  'Chest dips': ['Chest','Triceps','Shoulders'],
+  'Face pulls': ['Shoulders','Back'],
+  'Arnold press': ['Shoulders','Triceps'],
+  'Preacher curls': ['Biceps','Forearms'],
+  'Skull crushers': ['Triceps'],
+  'Hip thrust': ['Glutes','Hamstrings'],
+  'Hanging knee raises': ['Core','Forearms'],
+  'Standing calf raises': ['Calves'],
+  'Glute bridge': ['Glutes','Hamstrings','Core'],
+  'Cable glute kickback': ['Glutes'],
+  'Hip abduction machine': ['Glutes'],
+  'Cable pull-through': ['Glutes','Hamstrings','Back'],
+  'Step-ups': ['Quadriceps','Glutes','Hamstrings'],
+  'Sumo squat': ['Glutes','Quadriceps','Adductors'],
+  'Seated leg curl': ['Hamstrings'],
+  'Leg extension': ['Quadriceps'],
+  'Frog pumps': ['Glutes'],
+  'Side-lying hip abduction': ['Glutes'],
+  'Dead bug': ['Core'],
+  'Bird dog': ['Core','Back'],
+  'Reverse crunch': ['Core'],
+  'Back extension': ['Back','Glutes','Hamstrings'],
+  'Single-leg Romanian deadlift': ['Hamstrings','Glutes','Back','Core']
+};
+[...exercises, ...womenFocusExercises].forEach(exercise => {
+  const muscles = exerciseMuscleMetadata[exercise.name] || [exercise.muscle];
+  exercise.primaryMuscles = [exercise.muscle];
+  exercise.secondaryMuscles = muscles.filter(m => m !== exercise.muscle);
+  exercise.muscleTags = [...new Set(muscles.map(m => m.toLowerCase()))];
+});
+
 export default function App() {
   const { width: windowWidth } = useWindowDimensions();
   const deviceColorScheme = useColorScheme();
   const isWideScreen = windowWidth >= 760;
   const [tab, setTab] = useState('Home');
   const [answers, setAnswers] = useState(defaultAnswers);
+  const [muscleFocus, setMuscleFocus] = useState({});
   const [profileComplete, setProfileComplete] = useState(false);
+  const [profileXpAwarded, setProfileXpAwarded] = useState(false);
   const [showPersonalization, setShowPersonalization] = useState(false);
   const [step, setStep] = useState(0);
   const [hydrated, setHydrated] = useState(false);
@@ -951,7 +1011,6 @@ export default function App() {
   const [highContrast, setHighContrast] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [weeklySummaryEnabled, setWeeklySummaryEnabled] = useState(true);
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportDataText, setExportDataText] = useState('');
@@ -961,8 +1020,42 @@ export default function App() {
   const activeExercises = profileGender === 'female' ? womenExercises : exercises;
   const accentColor = profileGender === 'female' ? '#F28AB2' : GREEN;
   const resolvedTheme = themeMode === 'system' ? (deviceColorScheme === 'light' ? 'light' : 'dark') : themeMode;
-  const styles = useMemo(() => createStyles(accentColor, resolvedTheme), [accentColor, resolvedTheme]);
+  const styles = useMemo(() => createStyles(accentColor, resolvedTheme, highContrast), [accentColor, resolvedTheme, highContrast]);
   const showAlert = (title, message) => Alert.alert(translateString(title, language), translateString(message, language));
+  const playSound = (kind = 'tap') => {
+    if (!soundEnabled) return;
+    try {
+      const AudioContextClass = globalThis.AudioContext || globalThis.webkitAudioContext;
+      if (!AudioContextClass) return;
+      const context = new AudioContextClass();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const settings = kind === 'success'
+        ? { frequency: 740, duration: 0.18 }
+        : kind === 'achievement'
+          ? { frequency: 880, duration: 0.24 }
+          : { frequency: 520, duration: 0.055 };
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(settings.frequency, context.currentTime);
+      gain.gain.setValueAtTime(0.0001, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.06, context.currentTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + settings.duration);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      const play = () => {
+        oscillator.start();
+        oscillator.stop(context.currentTime + settings.duration + 0.03);
+      };
+      if (context.state === 'suspended' && typeof context.resume === 'function') {
+        context.resume().then(play).catch(() => context.close());
+      } else {
+        play();
+      }
+      oscillator.onended = () => context.close();
+    } catch (e) {
+      // Audio is optional; unsupported browsers should never interrupt app use.
+    }
+  };
   const [selectedTrainingDays, setSelectedTrainingDays] = useState([0, 2, 4]);
   const [calendarMonth, setCalendarMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [calendarSelectedDate, setCalendarSelectedDate] = useState(todayKey());
@@ -983,6 +1076,14 @@ export default function App() {
   const [selectedWorkoutDay, setSelectedWorkoutDay] = useState((new Date().getDay() + 6) % 7);
 
   const [foodSearch, setFoodSearch] = useState('');
+  const [foodDbResults, setFoodDbResults] = useState([]);
+  const [foodDbLoading, setFoodDbLoading] = useState(false);
+  const [foodDbError, setFoodDbError] = useState('');
+  const [selectedDbFood, setSelectedDbFood] = useState(null);
+  const [foodPortionGrams, setFoodPortionGrams] = useState('100');
+  const [savedFoods, setSavedFoods] = useState([]);
+  const [savedMeals, setSavedMeals] = useState([]);
+  const [mealForm, setMealForm] = useState({ name: '', category: 'Breakfast', calories: '', protein: '', carbs: '', fat: '' });
   const [selectedFood, setSelectedFood] = useState(null);
   const [activeInfo, setActiveInfo] = useState(null);
   const [customFood, setCustomFood] = useState({
@@ -1030,6 +1131,7 @@ export default function App() {
         if (raw) {
           const d = JSON.parse(raw);
           setAnswers({ ...defaultAnswers, ...(d.answers || {}) });
+          setMuscleFocus(d.muscleFocus && typeof d.muscleFocus === 'object' ? d.muscleFocus : {});
           setLanguage(d.language === 'hu' ? 'hu' : 'en');
           const savedTheme = ['dark', 'light', 'system'].includes(d.themeMode) ? d.themeMode : 'dark';
           setThemeMode(savedTheme);
@@ -1047,13 +1149,13 @@ export default function App() {
           setHighContrast(!!d.highContrast);
           setReduceMotion(!!d.reduceMotion);
           setSoundEnabled(d.soundEnabled !== false);
-          setHapticsEnabled(d.hapticsEnabled !== false);
           setWeeklySummaryEnabled(d.weeklySummaryEnabled !== false);
           setProfileGender(d.profileGender === 'female' ? 'female' : 'male');
           setProfileChoiceLocked(d.profileChoiceLocked !== undefined ? !!d.profileChoiceLocked : !!d.profileComplete);
           setGenderProfiles(d.genderProfiles && typeof d.genderProfiles === 'object' ? d.genderProfiles : {});
           setSelectedTrainingDays(Array.isArray(d.selectedTrainingDays) && d.selectedTrainingDays.length ? d.selectedTrainingDays : defaultTrainingDays(Math.min(6, Math.max(2, parseInt((d.answers || {}).days, 10) || 3))));
           setProfileComplete(!!d.profileComplete);
+          setProfileXpAwarded(d.profileXpAwarded !== undefined ? !!d.profileXpAwarded : !!d.profileComplete);
           setCompletedDates(d.completedDates || []);
           setWater(d.waterDate === todayKey() ? (d.water || 0) : 0);
           setWaterDate(todayKey());
@@ -1061,6 +1163,8 @@ export default function App() {
           setXp(d.xp || 0);
           setWorkoutLogs(d.workoutLogs || []);
           setFoodEntries(d.foodEntries || []);
+          setSavedFoods(Array.isArray(d.savedFoods) ? d.savedFoods : []);
+          setSavedMeals(Array.isArray(d.savedMeals) ? d.savedMeals : []);
           setGoalCalories(d.goalCalories || 2400);
           setGoalProtein(d.goalProtein || 150);
           setGoalWater(d.goalWater || Math.ceil(2000 / savedGlass));
@@ -1081,20 +1185,20 @@ export default function App() {
   useEffect(() => {
     if (!hydrated) return;
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
-      answers, profileComplete, completedDates, water, waterDate,
-      weightEntries, xp, workoutLogs, foodEntries,
+      answers, muscleFocus, profileComplete, profileXpAwarded, completedDates, water, waterDate,
+      weightEntries, xp, workoutLogs, foodEntries, savedFoods, savedMeals,
       goalCalories, goalProtein, goalWater, goalCarbs, goalFat, glassSizeMl, themeMode,
       restSeconds, allergies, foodPreference, mealsPerDay, weightUnit, heightUnit, volumeUnit,
-      textSize, highContrast, reduceMotion, soundEnabled, hapticsEnabled, weeklySummaryEnabled,
+      textSize, highContrast, reduceMotion, soundEnabled, weeklySummaryEnabled,
       strengthLogs, stretchDone, language, selectedTrainingDays, profileGender, profileChoiceLocked,
-      genderProfiles: { ...genderProfiles, [profileGender]: { answers, profileComplete, selectedTrainingDays, goalCalories, goalProtein, goalWater, goalCarbs, goalFat } }
+      genderProfiles: { ...genderProfiles, [profileGender]: { answers, muscleFocus, profileComplete, selectedTrainingDays, goalCalories, goalProtein, goalWater, goalCarbs, goalFat } }
     })).catch(e => console.log('Save error:', e));
   }, [
-    hydrated, answers, profileComplete, completedDates, water, waterDate,
-    weightEntries, xp, workoutLogs, foodEntries,
+    hydrated, answers, muscleFocus, profileComplete, profileXpAwarded, completedDates, water, waterDate,
+    weightEntries, xp, workoutLogs, foodEntries, savedMeals,
     goalCalories, goalProtein, goalWater, goalCarbs, goalFat, glassSizeMl, themeMode,
     restSeconds, allergies, foodPreference, mealsPerDay, weightUnit, heightUnit, volumeUnit,
-    textSize, highContrast, reduceMotion, soundEnabled, hapticsEnabled, weeklySummaryEnabled,
+    textSize, highContrast, reduceMotion, soundEnabled, weeklySummaryEnabled,
     strengthLogs, stretchDone, language, selectedTrainingDays, profileGender, profileChoiceLocked, genderProfiles, goalCalories, goalProtein, goalWater, goalCarbs, goalFat
   ]);
 
@@ -1217,7 +1321,7 @@ export default function App() {
     <TouchableOpacity
       style={secondary ? styles.secondaryButton : styles.greenButton}
       onPress={() => {
-        haptic('light');
+        playSound('tap');
         onPress();
       }}
     >
@@ -1231,13 +1335,13 @@ export default function App() {
     if (profileChoiceLocked) return;
     setProfileGender(gender);
     setProfileChoiceLocked(true);
-    haptic('success');
+    playSound('success');
   };
 
   const switchFitnessProfile = (gender) => {
     if (gender === profileGender) return;
     const currentSnapshot = {
-      answers, profileComplete, selectedTrainingDays,
+      answers, muscleFocus, profileComplete, selectedTrainingDays,
       goalCalories, goalProtein, goalWater, goalCarbs, goalFat
     };
     const savedTarget = genderProfiles[gender];
@@ -1250,6 +1354,7 @@ export default function App() {
     setCompletedExercises([]);
     if (savedTarget) {
       setAnswers({ ...defaultAnswers, ...(savedTarget.answers || {}) });
+      setMuscleFocus(savedTarget.muscleFocus || {});
       setProfileComplete(!!savedTarget.profileComplete);
       setSelectedTrainingDays(savedTarget.selectedTrainingDays || defaultTrainingDays(Math.min(6, Math.max(2, parseInt((savedTarget.answers || {}).days, 10) || 3))));
       setGoalCalories(savedTarget.goalCalories || 2400);
@@ -1260,6 +1365,7 @@ export default function App() {
       setShowPersonalization(false);
     } else {
       setAnswers(defaultAnswers);
+      setMuscleFocus({});
       setProfileComplete(false);
       setSelectedTrainingDays([0, 2, 4]);
       setGoalCalories(2400);
@@ -1270,7 +1376,7 @@ export default function App() {
       setStep(0);
       setShowPersonalization(true);
     }
-    haptic('success');
+    playSound('success');
   };
 
   const startPersonalization = () => {
@@ -1309,9 +1415,14 @@ export default function App() {
     setProfileComplete(true);
     setShowPersonalization(false);
     setTab('Home');
-    setXp(p => p + 50);
-    haptic('success');
-    showAlert('Profile created! 🎉', 'You earned 50 XP.');
+    if (!profileXpAwarded) {
+      setXp(p => p + 50);
+      setProfileXpAwarded(true);
+      playSound('success');
+      showAlert('Profile created! 🎉', 'You earned 50 XP.');
+    } else {
+      playSound('success');
+    }
   };
 
   const steps = [
@@ -1345,6 +1456,11 @@ export default function App() {
       subtitle: 'Where do you usually train?',
       key: 'equipment',
       options: ['Gym', 'Home with equipment', 'Home without equipment']
+    },
+    {
+      title: 'Muscle focus',
+      subtitle: 'Choose the muscle groups you want to prioritize. You can change these any time in Edit Profile.',
+      key: null
     }
   ];
 
@@ -1370,12 +1486,28 @@ export default function App() {
           ))}
         </View>
 
-        <Text style={styles.muted}>STEP {step + 1} OF 6</Text>
+        <Text style={styles.muted}>STEP {step + 1} OF {steps.length}</Text>
         <Text style={styles.pageTitle}>{current.title}</Text>
         <Text style={styles.muted}>{current.subtitle}</Text>
 
         <View style={{ marginTop: 22 }}>
-          {step === 2 ? (
+          {step === 6 ? (
+            <View>
+              <Text style={styles.cardTitle}>{language === 'hu' ? 'Izomcsoportok kiválasztása' : 'Select muscle groups'}</Text>
+              <Text style={styles.muted}>{language === 'hu' ? 'Állíts be prioritást minden izomcsoporthoz. A Normal kiegyensúlyozott terhelést jelent.' : 'Set a priority for each group. Normal keeps a balanced focus.'}</Text>
+              {['Chest','Back','Shoulders','Biceps','Triceps','Forearms','Abs','Glutes','Quadriceps','Hamstrings','Calves'].map(group => {
+                const priority = muscleFocus[group] || 'Normal';
+                return <View key={group} style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: resolvedTheme === 'light' ? '#DCE4D7' : '#30352C' }}>
+                  <Text style={styles.cardTitle}>{group}</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 5 }}>
+                    {['High','Medium','Normal'].map(level => <TouchableOpacity key={level} onPress={() => setMuscleFocus(prev => ({ ...prev, [group]: level }))} style={[styles.groupChip, { borderWidth: 1, borderColor: priority === level ? accentColor : 'transparent' }, priority === level && styles.groupChipActive]}>
+                      <Text style={[styles.groupChipText, priority === level && { color: resolvedTheme === 'light' ? '#172116' : '#11150D' }]}>{language === 'hu' ? (level === 'High' ? 'Magas' : level === 'Medium' ? 'Közepes' : 'Normál') : (level === 'High' ? 'High priority' : level === 'Medium' ? 'Medium' : 'Normal')}</Text>
+                    </TouchableOpacity>)}
+                  </View>
+                </View>;
+              })}
+            </View>
+          ) : step === 2 ? (
             [['age', 'Age', 'years'], ['height', 'Height', 'cm'], ['weight', 'Weight', 'kg']].map(([key, label, unit]) => (
               <View key={key} style={{ marginBottom: 15 }}>
                 <Text style={styles.cardTitle}>{label}</Text>
@@ -1393,7 +1525,7 @@ export default function App() {
             <TouchableOpacity
               key={option}
               onPress={() => {
-                haptic('light');
+                playSound('tap');
                 update(current.key, option);
                 if (current.key === 'days') { const n = parseInt(option, 10); setSelectedTrainingDays(p => { if (p.length === n) return p; if (p.length > n) return p.slice(0, n); const extra = Array.from({length:7},(_,j)=>j).filter(v=>!p.includes(v)).slice(0,n-p.length); return [...p,...extra].sort((a,b)=>a-b); }); }
               }}
@@ -1425,8 +1557,8 @@ export default function App() {
         </View>
 
         {button(
-          step === 5 ? 'CREATE MY PROFILE →' : 'CONTINUE →',
-          () => step < 5 ? setStep(step + 1) : finishPersonalization()
+          step === steps.length - 1 ? 'CREATE MY PROFILE →' : 'CONTINUE →',
+          () => step < steps.length - 1 ? setStep(step + 1) : finishPersonalization()
         )}
         {step > 0 && button('← GO BACK', () => setStep(step - 1), true)}
       </ScrollView>
@@ -1471,6 +1603,20 @@ export default function App() {
         selected = [...selected, ...extra];
       }
 
+      const priorityScore = exercise => {
+        const tags = exerciseMuscleMetadata[exercise.name] || [exercise.muscle];
+        return tags.reduce((score, tag) => {
+          const normalized = String(tag).toLowerCase();
+          const aliases = { legs: ['quadriceps','hamstrings','calves'], quads: ['quadriceps'], quadricep: ['quadriceps'], hamstring: ['hamstrings'], calf: ['calves'], core: ['abs'], abdominal: ['abs'], glute: ['glutes'], deltoids: ['shoulders'], pecs: ['chest'], lats: ['back'], forearm: ['forearms'] };
+          const matched = Object.keys(muscleFocus).find(group => group.toLowerCase() === normalized || (aliases[normalized] || []).includes(group.toLowerCase()));
+          const level = matched ? muscleFocus[matched] : 'Normal';
+          return Math.max(score, level === 'High' ? 2 : level === 'Medium' ? 1 : 0);
+        }, 0);
+      };
+      selected = selected.map((exercise, originalIndex) => ({ exercise, originalIndex }))
+        .sort((a,b) => priorityScore(b.exercise) - priorityScore(a.exercise) || a.originalIndex - b.originalIndex)
+        .map(item => item.exercise);
+
       return {
         ...day,
         dayName: dayNames[selectedTrainingDays[index] ?? index],
@@ -1478,14 +1624,18 @@ export default function App() {
         exercises: selected.slice(0, 6)
       };
     });
-  }, [dayCount, answers.experience, answers.equipment, profileComplete, selectedTrainingDays, profileGender]);
+  }, [dayCount, answers.experience, answers.equipment, profileComplete, selectedTrainingDays, profileGender, muscleFocus]);
 
   const selectedPlan = workoutPlan.find(p => p.weekdayIndex === selectedWorkoutDay);
   const workoutExercises = selectedPlan ? selectedPlan.exercises : [];
 
   const completeWorkout = () => {
-    if (!completedExercises.length) {
-      showAlert('No exercises completed', 'Mark at least one exercise before finishing.');
+    if (!workoutExercises.length) {
+      showAlert('No exercises completed', 'There is no scheduled workout to finish.');
+      return;
+    }
+    if (completedExercises.length !== workoutExercises.length) {
+      showAlert('Workout still in progress', `Complete all ${workoutExercises.length} scheduled exercises before finishing.`);
       return;
     }
     if (completedDates.includes(today)) {
@@ -1507,29 +1657,202 @@ export default function App() {
     setXp(p => p + 100 + completedExercises.length * 10);
     setWorkoutStarted(false);
     setCompletedExercises([]);
-    haptic('success');
+    playSound('success');
     showAlert('Workout completed! 🏆', 'You earned XP. Keep up the great work!');
   };
 
+  const normalizeMuscleSearch = value => String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\\u0300-\\u036f]/g, '')
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .trim();
+
   const muscleAliases = {
     calf: ['calf','calves','vádli','vádlik'], calves: ['calf','calves','vádli','vádlik'],
-    vádli: ['calf','calves','vádli','vádlik'], vádlik: ['calf','calves','vádli','vádlik'],
+    vádli: ['calf','calves','vádli','vádlik'], vádlik: ['calf','calves','vádli','vádlik'], vadli: ['calf','calves','vádli','vádlik'],
     bicep: ['bicep','biceps','bicepsz'], biceps: ['bicep','biceps','bicepsz'], bicepsz: ['bicep','biceps','bicepsz'],
-    chest: ['chest','mell','mellkas'], mell: ['chest','mell','mellkas'],
-    back: ['back','hát'], hát: ['back','hát'], shoulder: ['shoulder','shoulders','váll'], shoulders: ['shoulder','shoulders','váll'],
-    legs: ['legs','leg','láb','comb'], leg: ['legs','leg','láb','comb'], láb: ['legs','leg','láb','comb'],
+    chest: ['chest','mell','mellkas','pectorals'], mell: ['chest','mell','mellkas','pectorals'],
+    back: ['back','hát','lat','lats'], hát: ['back','hát','lat','lats'], hat: ['back','hát','lat','lats'],
+    shoulder: ['shoulder','shoulders','váll','deltoid'], shoulders: ['shoulder','shoulders','váll','deltoid'], vall: ['shoulder','shoulders','váll','deltoid'],
+    legs: ['legs','leg','láb','comb','quadriceps','quads','hamstrings'], leg: ['legs','leg','láb','comb'],
+    láb: ['legs','leg','láb','comb'], lab: ['legs','leg','láb','comb'], comb: ['legs','leg','láb','comb','quadriceps','hamstrings'],
     tricep: ['tricep','triceps','tricepsz'], triceps: ['tricep','triceps','tricepsz'], tricepsz: ['tricep','triceps','tricepsz'],
     glute: ['glute','glutes','farizom'], glutes: ['glute','glutes','farizom'], farizom: ['glute','glutes','farizom'],
-    abs: ['abs','core','has','hasizom'], core: ['abs','core','has','hasizom'], has: ['abs','core','has','hasizom']
+    abs: ['abs','core','has','hasizom'], core: ['abs','core','has','hasizom'], has: ['abs','core','has','hasizom'], hasizom: ['abs','core','has','hasizom'],
+    forearm: ['forearm','forearms','alkar'], forearms: ['forearm','forearms','alkar'],
+    quadriceps: ['quadriceps','quads','combfeszito','comb'], quads: ['quadriceps','quads','combfeszito','comb'],
+    hamstring: ['hamstring','hamstrings','combhajlito'], hamstrings: ['hamstring','hamstrings','combhajlito']
   };
-  const query = search.trim().toLowerCase();
-  const queryAliases = muscleAliases[query] || [query];
+  const query = normalizeMuscleSearch(search);
+  const queryTerms = query.split(/\\s+/).filter(Boolean);
+  const expandedTerms = queryTerms.flatMap(term => muscleAliases[term] || [term]).map(normalizeMuscleSearch);
   const filteredExercises = activeExercises.filter(e => {
-    const nameMatch = e.name.toLowerCase().includes(query);
-    const muscleMatch = query && queryAliases.some(alias => e.muscleTags.some(tag => tag.includes(alias)) || e.muscle.toLowerCase().includes(alias));
-    const categoryMatch = muscleFilter === 'All' || e.muscleTags.some(tag => tag.includes(muscleFilter.toLowerCase())) || e.muscle.toLowerCase().includes(muscleFilter.toLowerCase());
+    const name = normalizeMuscleSearch(e.name);
+    const muscleFields = [
+      e.muscle,
+      ...(e.primaryMuscles || []),
+      ...(e.secondaryMuscles || []),
+      ...(e.muscleTags || [])
+    ].map(normalizeMuscleSearch);
+    const nameMatch = !query || name.includes(query);
+    const muscleMatch = !!query && expandedTerms.some(term =>
+      muscleFields.some(field => field.includes(term) || term.includes(field))
+    );
+    const category = normalizeMuscleSearch(muscleFilter);
+    const categoryMatch = muscleFilter === 'All' || muscleFields.some(field =>
+      field.includes(category) || (muscleAliases[category] || []).some(alias => field.includes(normalizeMuscleSearch(alias)))
+    );
     return (!query || nameMatch || muscleMatch) && categoryMatch;
   });
+
+
+  const normalizeFoodNutrition = (raw, source) => {
+    const nutrients = raw.nutriments || {};
+    const kcal = Number(
+      nutrients['energy-kcal_100g'] ??
+      nutrients['energy-kcal'] ??
+      (Number(nutrients['energy_100g'] ?? nutrients.energy) / 4.184)
+    );
+    const protein = Number(nutrients.proteins_100g ?? nutrients.proteins ?? 0);
+    const carbs = Number(nutrients.carbohydrates_100g ?? nutrients.carbohydrates ?? 0);
+    const fat = Number(nutrients.fat_100g ?? nutrients.fat ?? 0);
+    if (![kcal, protein, carbs, fat].every(Number.isFinite) || kcal < 0) return null;
+    return {
+      id: String(raw.code || raw.fdcId || `${source}-${raw.product_name || raw.description || Date.now()}`),
+      name: raw.product_name || raw.product_name_en || raw.description || raw.name || 'Food item',
+      brand: raw.brands || raw.brandOwner || '',
+      source,
+      calories100g: kcal,
+      protein100g: protein,
+      carbs100g: carbs,
+      fat100g: fat,
+      basis: '100 g',
+      verified: true
+    };
+  };
+
+  const searchFoodDatabase = async () => {
+    const term = foodSearch.trim();
+    if (!term) {
+      setFoodDbError(language === 'hu' ? 'Írj be egy ételnevet a kereséshez.' : 'Enter a food name to search.');
+      return;
+    }
+    setFoodDbLoading(true);
+    setFoodDbError('');
+    setSelectedDbFood(null);
+    setFoodDbResults([]);
+    const tasks = [];
+
+    // Open Food Facts: broad branded/grocery catalogue, including products sold in Europe.
+    tasks.push(
+      fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(term)}&search_simple=1&action=process&json=1&page_size=20&fields=code,product_name,product_name_en,brands,nutriments`)
+        .then(r => { if (!r.ok) throw new Error('Open Food Facts'); return r.json(); })
+        .then(data => (data.products || []).map(p => normalizeFoodNutrition(p, 'Open Food Facts')).filter(Boolean))
+        .catch(() => [])
+    );
+
+    // USDA FoodData Central: generic ingredients and prepared foods.
+    // DEMO_KEY is intentionally used for prototyping; it has strict shared rate limits.
+    tasks.push(
+      fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=${encodeURIComponent(term)}&pageSize=15`)
+        .then(r => { if (!r.ok) throw new Error('USDA'); return r.json(); })
+        .then(data => (data.foods || []).map(food => {
+          const byId = {};
+          (food.foodNutrients || []).forEach(n => {
+            const id = String(n.nutrientNumber || n.nutrientId || '');
+            byId[id] = Number(n.value ?? n.amount ?? 0);
+          });
+          const mapped = {
+            fdcId: food.fdcId,
+            description: food.description,
+            brandOwner: food.brandOwner || '',
+            nutriments: {
+              'energy-kcal_100g': byId['1008'] || byId['2047'] || 0,
+              proteins_100g: byId['1003'] || 0,
+              carbohydrates_100g: byId['1005'] || 0,
+              fat_100g: byId['1004'] || 0
+            }
+          };
+          return normalizeFoodNutrition(mapped, 'USDA FoodData Central');
+        }).filter(Boolean))
+        .catch(() => [])
+    );
+
+    try {
+      const results = await Promise.all(tasks);
+      const merged = [...results[0], ...results[1]];
+      const unique = [];
+      const seen = new Set();
+      merged.forEach(item => {
+        const key = `${item.name.toLowerCase()}-${Math.round(item.calories100g)}-${item.source}`;
+        if (!seen.has(key)) { seen.add(key); unique.push(item); }
+      });
+      setFoodDbResults(unique.slice(0, 30));
+      if (!unique.length) {
+        setFoodDbError(language === 'hu'
+          ? 'Nem találtunk megfelelő ételt, vagy az adatbázisok átmenetileg nem elérhetők. Próbálj másik keresést, vagy add meg kézzel az adatokat.'
+          : 'No matching foods found, or the databases are temporarily unavailable. Try another search or enter the values manually.');
+      }
+    } catch (e) {
+      setFoodDbError(language === 'hu' ? 'Az ételkeresés most nem érhető el.' : 'Food search is temporarily unavailable.');
+    } finally {
+      setFoodDbLoading(false);
+    }
+  };
+
+  const savePersonalMeal = () => {
+    const name = mealForm.name.trim();
+    const calories = Number(mealForm.calories);
+    if (!name || mealForm.calories === '' || !Number.isFinite(calories) || calories < 0) {
+      showAlert(language === 'hu' ? 'Hiányzó adatok' : 'Missing information', language === 'hu' ? 'Adj meg egy nevet és érvényes kalóriaértéket.' : 'Enter a meal name and a valid calorie amount.');
+      return;
+    }
+    const meal = {
+      id: `personal-${Date.now()}`,
+      name,
+      category: mealForm.category,
+      calories: Math.round(calories),
+      protein: Math.max(0, Number(mealForm.protein) || 0),
+      carbs: Math.max(0, Number(mealForm.carbs) || 0),
+      fat: Math.max(0, Number(mealForm.fat) || 0),
+      createdAt: new Date().toISOString()
+    };
+    setSavedMeals(previous => [...previous, meal]);
+    setMealForm({ name: '', category: 'Breakfast', calories: '', protein: '', carbs: '', fat: '' });
+    playSound('success');
+    showAlert(language === 'hu' ? 'Étkezés elmentve' : 'Meal saved', language === 'hu' ? 'Mostantól bármikor hozzáadhatod a naplódhoz.' : 'You can now add it to your diary whenever you want.');
+  };
+
+  const addPersonalMealToDiary = meal => {
+    addMeal({ name: meal.name, category: meal.category, calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, source: 'My Meals' });
+  };
+
+  const addDatabaseFoodToDiary = (saveForLater = false) => {
+    if (!selectedDbFood) return;
+    const grams = Number(foodPortionGrams);
+    if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) {
+      showAlert(language === 'hu' ? 'Ellenőrizd az adagot' : 'Check the portion', language === 'hu' ? 'Adj meg 1 és 5000 gramm közötti mennyiséget.' : 'Enter a portion between 1 and 5000 grams.');
+      return;
+    }
+    const factor = grams / 100;
+    const meal = {
+      name: selectedDbFood.name,
+      brand: selectedDbFood.brand,
+      grams,
+      calories: Math.round(selectedDbFood.calories100g * factor),
+      protein: Math.round(selectedDbFood.protein100g * factor * 10) / 10,
+      carbs: Math.round(selectedDbFood.carbs100g * factor * 10) / 10,
+      fat: Math.round(selectedDbFood.fat100g * factor * 10) / 10,
+      source: selectedDbFood.source
+    };
+    if (saveForLater) {
+      setSavedFoods(prev => prev.some(x => x.name === meal.name && x.source === meal.source) ? prev : [...prev, { ...meal, id: `${selectedDbFood.id}-${Date.now()}` }]);
+    }
+    addMeal(meal);
+    setSelectedDbFood(null);
+    setFoodPortionGrams('100');
+  };
 
   const addMeal = meal => {
     setFoodEntries(p => [...p, {
@@ -1538,7 +1861,7 @@ export default function App() {
       date: today
     }]);
     setXp(p => p + 5);
-    haptic('success');
+    playSound('success');
     showAlert('Meal added', 'Your food diary has been updated. +5 XP');
   };
 
@@ -1567,7 +1890,7 @@ export default function App() {
     }
     setWeightEntries(p => [...p, { date: today, weight: value }]);
     setXp(p => p + 10);
-    haptic('success');
+    playSound('success');
     showAlert('Weight saved', 'Your progress has been updated. +10 XP');
   };
 
@@ -1592,7 +1915,7 @@ export default function App() {
     setXp(p => p + 10);
     setStrengthFilter(strengthForm.exercise.trim());
     setStrengthForm(p => ({ ...p, weight: '', reps: '' }));
-    haptic('success');
+    playSound('success');
     showAlert('Strength record saved', 'Your strength progress has been updated. +10 XP');
   };
 
@@ -1661,11 +1984,11 @@ export default function App() {
           <Text style={styles.cardTitle}>{language === 'hu' ? 'Válaszd ki a fitneszprofilodat' : 'Choose your fitness profile'}</Text>
           <Text style={styles.muted}>{language === 'hu' ? 'A választás személyre szabja a színeket és a számításokat.' : 'Your choice personalizes the theme and fitness calculations.'}</Text>
           <View style={styles.genderChoiceRow}>
-            <TouchableOpacity onPress={() => chooseInitialProfile('male')} style={[styles.genderChoice, profileGender === 'male' && { borderColor: accentColor, backgroundColor: '#273322' }]}>
+            <TouchableOpacity onPress={() => chooseInitialProfile('male')} style={[styles.genderChoice, profileGender === 'male' && { borderColor: accentColor, backgroundColor: resolvedTheme === 'light' ? '#EAF3E5' : '#273322' }]}>
               <Text style={[styles.genderChoiceTitle, profileGender === 'male' && { color: accentColor }]}>{language === 'hu' ? 'Férfi profil' : "Men's Fitness"}</Text>
               <Text style={styles.muted}>{language === 'hu' ? 'Kiválasztás' : 'Select'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => chooseInitialProfile('female')} style={[styles.genderChoice, profileGender === 'female' && { borderColor: accentColor, backgroundColor: '#3A2630' }]}>
+            <TouchableOpacity onPress={() => chooseInitialProfile('female')} style={[styles.genderChoice, profileGender === 'female' && { borderColor: accentColor, backgroundColor: resolvedTheme === 'light' ? '#FCEAF1' : '#3A2630' }]}>
               <Text style={[styles.genderChoiceTitle, profileGender === 'female' && { color: accentColor }]}>{language === 'hu' ? 'Női profil' : "Women's Fitness"}</Text>
               <Text style={styles.muted}>{language === 'hu' ? 'Kiválasztás' : 'Select'}</Text>
             </TouchableOpacity>
@@ -1893,7 +2216,7 @@ export default function App() {
                   key={e.id}
                   style={styles.exercise}
                   onPress={() => {
-                    haptic('light');
+                    playSound('tap');
                     setCompletedExercises(p =>
                       p.includes(e.id) ? p.filter(x => x !== e.id) : [...p, e.id]
                     );
@@ -2056,6 +2379,48 @@ export default function App() {
         </>
       )}
 
+      {heading(language === 'hu' ? 'Saját étkezéseim' : 'My Meals', language === 'hu' ? 'SAJÁT ÉTELGYŰJTEMÉNY' : 'YOUR PERSONAL COLLECTION')}
+      {card(
+        <>
+          <Text style={styles.cardTitle}>{language === 'hu' ? 'Új étkezés létrehozása' : 'Create a new meal'}</Text>
+          <Text style={styles.muted}>{language === 'hu' ? 'Mentsd el a gyakran fogyasztott étkezéseidet, és később egyetlen koppintással add hozzá a naplódhoz.' : 'Save meals you eat often and add them to your diary later with one tap.'}</Text>
+          <TextInput value={mealForm.name} onChangeText={v => setMealForm(p => ({ ...p, name: v }))} placeholder={language === 'hu' ? 'Étkezés neve, pl. Csirkés rizs' : 'Meal name, e.g. Chicken and rice'} placeholderTextColor={MUTED} style={styles.input} />
+          <Text style={styles.muted}>{language === 'hu' ? 'Kategória' : 'Category'}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>
+            {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map(category => (
+              <TouchableOpacity key={category} onPress={() => setMealForm(p => ({ ...p, category }))} style={[styles.chip, mealForm.category === category && styles.chipActive, { marginRight: 7, marginBottom: 7 }]}>
+                <Text style={[styles.chipText, mealForm.category === category && { color: '#11150D' }]}>{language === 'hu' ? ({ Breakfast: 'Reggeli', Lunch: 'Ebéd', Dinner: 'Vacsora', Snacks: 'Snackek' }[category]) : category}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TextInput value={mealForm.calories} onChangeText={v => setMealForm(p => ({ ...p, calories: v }))} placeholder={language === 'hu' ? 'Kalória (kcal) *' : 'Calories (kcal) *'} placeholderTextColor={MUTED} keyboardType="decimal-pad" style={[styles.input, { width: '100%', alignSelf: 'stretch' }]} />
+          <TextInput value={mealForm.protein} onChangeText={v => setMealForm(p => ({ ...p, protein: v }))} placeholder={language === 'hu' ? 'Fehérje (g)' : 'Protein (g)'} placeholderTextColor={MUTED} keyboardType="decimal-pad" style={[styles.input, { width: '100%', alignSelf: 'stretch' }]} />
+          <TextInput value={mealForm.carbs} onChangeText={v => setMealForm(p => ({ ...p, carbs: v }))} placeholder={language === 'hu' ? 'Szénhidrát (g)' : 'Carbs (g)'} placeholderTextColor={MUTED} keyboardType="decimal-pad" style={[styles.input, { width: '100%', alignSelf: 'stretch' }]} />
+          <TextInput value={mealForm.fat} onChangeText={v => setMealForm(p => ({ ...p, fat: v }))} placeholder={language === 'hu' ? 'Zsír (g)' : 'Fat (g)'} placeholderTextColor={MUTED} keyboardType="decimal-pad" style={[styles.input, { width: '100%', alignSelf: 'stretch' }]} />
+          {button(language === 'hu' ? 'ÉTKEZÉS MENTÉSE →' : 'SAVE MY MEAL →', savePersonalMeal)}
+        </>
+      )}
+      {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map(category => {
+        const categoryMeals = savedMeals.filter(meal => meal.category === category);
+        if (!categoryMeals.length) return null;
+        return (
+          <View key={category} style={{ marginBottom: 12 }}>
+            <Text style={styles.cardTitle}>{language === 'hu' ? ({ Breakfast: 'Reggeli', Lunch: 'Ebéd', Dinner: 'Vacsora', Snacks: 'Snackek' }[category]) : category}</Text>
+            {categoryMeals.map(meal => (
+              <View key={meal.id} style={styles.exercise}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>{meal.name}</Text>
+                  <Text style={styles.muted}>{meal.calories} kcal · P {meal.protein}g · C {meal.carbs}g · F {meal.fat}g</Text>
+                </View>
+                <TouchableOpacity style={styles.foodAddButton} onPress={() => addPersonalMealToDiary(meal)}><Text style={styles.foodAddText}>+ {language === 'hu' ? 'NAPLÓHOZ' : 'ADD TO DIARY'}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setSavedMeals(previous => previous.filter(item => item.id !== meal.id))} style={{ paddingLeft: 10 }}><Text style={styles.danger}>✕</Text></TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        );
+      })}
+      {savedMeals.length === 0 && <Text style={styles.muted}>{language === 'hu' ? 'Még nincs elmentett étkezésed. Hozd létre az elsőt fent!' : 'You have no saved meals yet. Create your first one above!'}</Text>}
+
       {heading('Snack & meal recommendations', 'PERSONALIZED IDEAS')}
       {card(
         <>
@@ -2091,6 +2456,81 @@ export default function App() {
           </View>
         </View>
       ))}
+
+
+      {heading(language === 'hu' ? 'Ételadatbázis kereső' : 'Food database search', language === 'hu' ? 'TÖBB MILLIÓ TERMÉK' : 'GLOBAL FOOD SEARCH')}
+      <Text style={styles.muted}>
+        {language === 'hu'
+          ? 'Keress alapanyagokra, elkészített ételekre és bolti termékekre. Az értékek 100 grammra vonatkoznak, az adag alapján automatikusan számolunk.'
+          : 'Search ingredients, prepared foods and branded grocery products. Values are per 100 g and are recalculated for your portion.'}
+      </Text>
+      <TextInput
+        value={foodSearch}
+        onChangeText={setFoodSearch}
+        onSubmitEditing={searchFoodDatabase}
+        placeholder={language === 'hu' ? 'Pl. csirkemell, rizs, joghurt...' : 'e.g. chicken breast, rice, yogurt...'}
+        placeholderTextColor={MUTED}
+        style={styles.input}
+        returnKeyType="search"
+      />
+      {button(foodDbLoading ? (language === 'hu' ? 'KERESÉS...' : 'SEARCHING...') : (language === 'hu' ? 'ÉTEL KERESÉSE →' : 'SEARCH FOODS →'), searchFoodDatabase, foodDbLoading)}
+      {foodDbError ? <Text style={styles.muted}>{foodDbError}</Text> : null}
+      {foodDbResults.map((food, index) => (
+        <TouchableOpacity
+          key={`${food.id}-${index}`}
+          onPress={() => { setSelectedDbFood(food); setFoodPortionGrams('100'); }}
+          style={[styles.exercise, selectedDbFood && selectedDbFood.id === food.id ? styles.selectedExercise : null]}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>{food.name}</Text>
+            <Text style={styles.muted}>{food.brand ? `${food.brand} · ` : ''}{food.source}</Text>
+            <Text style={styles.muted}>
+              {Math.round(food.calories100g)} kcal · P {food.protein100g.toFixed(1)}g · C {food.carbs100g.toFixed(1)}g · F {food.fat100g.toFixed(1)}g / 100g
+            </Text>
+          </View>
+          <Text style={styles.green}>{selectedDbFood && selectedDbFood.id === food.id ? '✓' : '＋'}</Text>
+        </TouchableOpacity>
+      ))}
+      {selectedDbFood && card(
+        <>
+          <Text style={styles.cardTitle}>{selectedDbFood.name}</Text>
+          <Text style={styles.muted}>{language === 'hu' ? 'Mennyiség grammban' : 'Portion size in grams'}</Text>
+          <TextInput
+            value={foodPortionGrams}
+            onChangeText={setFoodPortionGrams}
+            keyboardType="numeric"
+            placeholder="100"
+            placeholderTextColor={MUTED}
+            style={styles.input}
+          />
+          {(() => {
+            const factor = Math.max(0, Number(foodPortionGrams) || 0) / 100;
+            return (
+              <Text style={styles.muted}>
+                {Math.round(selectedDbFood.calories100g * factor)} kcal · P {(selectedDbFood.protein100g * factor).toFixed(1)}g · C {(selectedDbFood.carbs100g * factor).toFixed(1)}g · F {(selectedDbFood.fat100g * factor).toFixed(1)}g
+              </Text>
+            );
+          })()}
+          <View style={styles.row}>
+            {button(language === 'hu' ? 'MENTÉS KEDVENCEKHEZ' : 'SAVE FOOD', () => addDatabaseFoodToDiary(true), true)}
+            {button(language === 'hu' ? 'NAPLÓHOZ ADÁS' : 'ADD TO DIARY', () => addDatabaseFoodToDiary(false))}
+          </View>
+        </>
+      )}
+      {savedFoods.length > 0 && (
+        <>
+          <Text style={styles.cardTitle}>{language === 'hu' ? 'Mentett ételeim' : 'My saved foods'}</Text>
+          {savedFoods.map(food => (
+            <View key={food.id} style={styles.exercise}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{food.name}</Text>
+                <Text style={styles.muted}>{food.grams || 100} g · {food.calories} kcal</Text>
+              </View>
+              <TouchableOpacity onPress={() => addMeal(food)}><Text style={styles.green}>+ ADD</Text></TouchableOpacity>
+            </View>
+          ))}
+        </>
+      )}
 
       {heading('Quick meal presets', 'QUICK ADD')}
       <TextInput
@@ -2150,7 +2590,7 @@ export default function App() {
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>{f.name}</Text>
             <Text style={styles.muted}>
-              {f.calories} kcal · P {f.protein}g · C {f.carbs}g · F {f.fat}g
+              {f.grams ? `${f.grams} g · ` : ''}{f.calories} kcal · P {f.protein}g · C {f.carbs}g · F {f.fat}g
             </Text>
             <TouchableOpacity onPress={() => setSelectedFood(f)} style={{ paddingTop: 6 }}><Text style={styles.green}>ⓘ FOOD INFO</Text></TouchableOpacity>
           </View>
@@ -2541,7 +2981,9 @@ export default function App() {
           })}
         </View>
         <View style={styles.calendarLegend}>
-          <Text style={styles.muted}>● {language==='hu'?'Teljesítve':'Completed'}</Text><Text style={styles.muted}>● {language==='hu'?'Tervezett':'Scheduled'}</Text><Text style={styles.muted}>● {language==='hu'?'Kihagyott':'Missed'}</Text>
+          <View style={styles.calendarLegendItem}><View style={[styles.calendarLegendDot, styles.calendarDone]} /><Text style={styles.muted}>{language==='hu'?'Teljesítve':'Completed'}</Text></View>
+          <View style={styles.calendarLegendItem}><View style={[styles.calendarLegendDot, styles.calendarPlanned]} /><Text style={styles.muted}>{language==='hu'?'Tervezett':'Scheduled'}</Text></View>
+          <View style={styles.calendarLegendItem}><View style={[styles.calendarLegendDot, styles.calendarMissed]} /><Text style={styles.muted}>{language==='hu'?'Kihagyott':'Missed'}</Text></View>
         </View>
       </>)}
       {heading(language==='hu'?'Kiválasztott nap':'Selected day', formatDate(calendarSelectedDate, language === 'hu' ? 'hu-HU' : 'en-US'))}
@@ -2587,7 +3029,7 @@ export default function App() {
 
       <TouchableOpacity
         accessibilityRole="button"
-        onPress={() => { haptic('light'); setTab('Settings'); }}
+        onPress={() => { playSound('tap'); setTab('Settings'); }}
         style={{ backgroundColor: accentColor, borderRadius: 13, paddingVertical: 17, paddingHorizontal: 18, marginBottom: 16, alignItems: 'center' }}
       >
         <Text style={{ color: '#11150D', fontSize: 13, fontWeight: '900', letterSpacing: 1 }}>
@@ -2622,7 +3064,8 @@ export default function App() {
             ['Experience', answers.experience],
             ['Training days', answers.days],
             ['Training weekdays', selectedTrainingDays.map(i => dayNames[i]).join(', ')],
-            ['Equipment', answers.equipment]
+            ['Equipment', answers.equipment],
+            [language === 'hu' ? 'Izomfókusz' : 'Muscle focus', Object.entries(muscleFocus).filter(([,v]) => v !== 'Normal').map(([k,v]) => `${k} (${v})`).join(', ') || (language === 'hu' ? 'Kiegyensúlyozott' : 'Balanced')]
           ].map(([k, v]) => (
             <View key={k} style={styles.profileRow}>
               <Text style={styles.muted}>{k}</Text>
@@ -2645,7 +3088,7 @@ export default function App() {
       {card(
         <>
           <Text style={styles.cardTitle}>BIFIT</Text>
-          <Text style={styles.muted}>Version 2.0 · Your personal fitness platform.</Text>
+          <Text style={styles.muted}>Version 2.2 · Your personal fitness platform.</Text>
           <Text style={[styles.cardTitle,{marginTop:16}]}>{language==='hu'?'Alkalmazás nyelve':'App language'}</Text>
           <View style={styles.row}>
             {button('🇬🇧 English',()=>setLanguage('en'),language!=='en')}
@@ -2654,11 +3097,11 @@ export default function App() {
           <Text style={[styles.cardTitle,{marginTop:16}]}>{language==='hu'?'Fitneszprofil váltása':'Change fitness profile'}</Text>
           <Text style={styles.muted}>{language==='hu'?'A másik profilhoz külön személyes adatokat és edzéstervet állíthatsz be. A korábban mentett profilod megmarad.':'Each profile keeps its own personal details and plan. Previously saved profile data will be restored when you switch back.'}</Text>
           <View style={styles.genderChoiceRow}>
-            <TouchableOpacity onPress={() => switchFitnessProfile('male')} style={[styles.genderChoice, profileGender==='male' && {borderColor:GREEN, backgroundColor:'#273322'}]}>
+            <TouchableOpacity onPress={() => switchFitnessProfile('male')} style={[styles.genderChoice, profileGender==='male' && {borderColor:GREEN, backgroundColor:resolvedTheme === 'light' ? '#EAF3E5' : '#273322'}]}>
               <Text style={[styles.genderChoiceTitle, profileGender==='male' && {color:GREEN}]}>{language==='hu'?'Férfi profil':'Men’s Fitness'}</Text>
               <Text style={styles.muted}>{profileGender==='male'?(language==='hu'?'Aktív':'Active'):(genderProfiles.male?.profileComplete?(language==='hu'?'Mentett profil':'Saved profile'):(language==='hu'?'Új profil':'New profile'))}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => switchFitnessProfile('female')} style={[styles.genderChoice, profileGender==='female' && {borderColor:'#F28AB2', backgroundColor:'#3A2630'}]}>
+            <TouchableOpacity onPress={() => switchFitnessProfile('female')} style={[styles.genderChoice, profileGender==='female' && {borderColor:'#F28AB2', backgroundColor:resolvedTheme === 'light' ? '#FCEAF1' : '#3A2630'}]}>
               <Text style={[styles.genderChoiceTitle, profileGender==='female' && {color:'#F28AB2'}]}>{language==='hu'?'Női profil':'Women’s Fitness'}</Text>
               <Text style={styles.muted}>{profileGender==='female'?(language==='hu'?'Aktív':'Active'):(genderProfiles.female?.profileComplete?(language==='hu'?'Mentett profil':'Saved profile'):(language==='hu'?'Új profil':'New profile'))}</Text>
             </TouchableOpacity>
@@ -2680,10 +3123,12 @@ export default function App() {
               onPress: async () => {
                 await AsyncStorage.removeItem(STORAGE_KEY);
                 setAnswers(defaultAnswers);
+                setMuscleFocus({});
                 setProfileGender('male');
                 setProfileChoiceLocked(false);
                 setGenderProfiles({});
                 setProfileComplete(false);
+                setProfileXpAwarded(false);
                 setCompletedDates([]);
                 setWater(0);
                 setWeightEntries([]);
@@ -2706,7 +3151,7 @@ export default function App() {
                 setShowPersonalization(false);
                 setSelectedExercise(null);
                 setTab('Home');
-                haptic('success');
+                playSound('success');
               }
             }
           ]
@@ -2726,7 +3171,7 @@ export default function App() {
     setGlassSizeMl(parsed);
     setGoalWater(Math.max(1, Math.ceil(2000 / parsed)));
     setGlassSizeInput(String(parsed));
-    haptic('success');
+    playSound('success');
   };
 
   const settingsScreen = () => {
@@ -2754,11 +3199,11 @@ export default function App() {
     }).length;
     const todayMeals = (foodEntries || []).filter(entry => entry.date === today).length;
     const exportPayload = {
-      exportedAt: new Date().toISOString(), profileGender, answers, profileComplete,
+      exportedAt: new Date().toISOString(), profileGender, answers, profileComplete, profileXpAwarded,
       completedDates, water, waterDate, weightEntries, xp, workoutLogs, foodEntries,
       settings: { language, themeMode, glassSizeMl, restSeconds, allergies, foodPreference,
         mealsPerDay, weightUnit, heightUnit, volumeUnit, textSize, highContrast,
-        reduceMotion, soundEnabled, hapticsEnabled, weeklySummaryEnabled }
+        reduceMotion, soundEnabled, weeklySummaryEnabled }
     };
 
     return (
@@ -2863,14 +3308,14 @@ export default function App() {
           </View>
           {toggleRow(settingTitle('Erősebb kontraszt', 'High contrast'), settingTitle('Kontrasztosabb felületek', 'Increase interface contrast'), highContrast, setHighContrast)}
           {toggleRow(settingTitle('Animációk csökkentése', 'Reduce animations'), settingTitle('Kevesebb mozgó effekt', 'Reduce motion effects'), reduceMotion, setReduceMotion)}
-          <Text style={styles.muted}>{settingTitle('A szövegméret, kontraszt és animációs preferencia mentésre kerül. Egyes képernyőkön a megjelenés fokozatosan kerül alkalmazásra.', 'Text size, contrast and motion preferences are saved. Their visual application may vary by screen.')}</Text>
+          <Text style={styles.muted}>{settingTitle('A betűméret az alkalmazás szövegeire érvényesül, a kontraszt erősebb színeket használ, a csökkentett animáció pedig kikapcsolja a képernyőváltások mozgását.', 'Text size applies across app text, high contrast strengthens interface colors, and reduced motion disables screen transition animations.')}</Text>
         </>)}
 
         {card(<>
-          <Text style={styles.cardTitle}>{settingTitle('8. Hangok és rezgések', '8. Sounds & Haptics')}</Text>
-          {toggleRow(settingTitle('Hanghatások', 'Sound effects'), settingTitle('Hangok engedélyezése, ha támogatottak.', 'Allow sound effects where supported.'), soundEnabled, setSoundEnabled)}
-          {toggleRow(settingTitle('Rezgés', 'Haptic feedback'), settingTitle('Gombnyomások finom rezgése, ha az eszköz támogatja.', 'Light vibration on interactions where supported.'), hapticsEnabled, setHapticsEnabled)}
-          <Text style={styles.muted}>{settingTitle('A rezgésbeállítás az eszköz által támogatott rezgéseket vezérli. Hanghatások jelenleg nem minden platformon érhetők el.', 'Haptics control supported device vibrations. Sound effects are not available on every platform yet.')}</Text>
+          <Text style={styles.cardTitle}>{settingTitle('8. Hanghatások', '8. Sound Effects')}</Text>
+          {toggleRow(settingTitle('Hanghatások', 'Sound effects'), settingTitle('Rövid hangjelzések gombnyomáskor és fontos eseményeknél.', 'Play short sounds for button presses and key events.'), soundEnabled, setSoundEnabled)}
+          {button(settingTitle('HANG TESZTELÉSE', 'TEST SOUND'), () => playSound('success'), true)}
+          <Text style={styles.muted}>{settingTitle('A hang lejátszása az eszköz és a böngésző támogatásától függ. iPhone-on előfordulhat, hogy a néma mód vagy a böngésző beállításai korlátozzák.', 'Playback depends on device and browser support. On iPhone, Silent Mode or browser settings may limit sound.')}</Text>
         </>)}
 
         {card(<>
@@ -2896,12 +3341,12 @@ export default function App() {
         {card(<>
           <Text style={styles.cardTitle}>{settingTitle('11. A BIFIT-ről', '11. About BIFIT')}</Text>
           <Text style={styles.bigNumber}>BIFIT</Text>
-          <Text style={styles.muted}>Version 2.1</Text>
+          <Text style={styles.muted}>Version 2.2</Text>
           <Text style={styles.muted}>{settingTitle('Személyes fitneszplatform edzéskövetéshez, táplálkozáshoz és fejlődéshez.', 'Your personal fitness platform for training, nutrition and progress tracking.')}</Text>
           <Text style={styles.muted}>{settingTitle('Az alkalmazásban szereplő célértékek becslések, nem helyettesítik szakember tanácsát.', 'Targets shown in the app are estimates and do not replace professional advice.')}</Text>
         </>)}
 
-        <Modal visible={exportModalVisible} animationType="slide" transparent onRequestClose={() => setExportModalVisible(false)}>
+        <Modal visible={exportModalVisible} animationType={reduceMotion ? "none" : "slide"} transparent onRequestClose={() => setExportModalVisible(false)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', padding: 18 }}>
             <View style={[styles.card, { maxHeight: '85%' }]}>
               <Text style={styles.cardTitle}>{settingTitle('Adatok exportálása', 'Export data')}</Text>
@@ -2942,6 +3387,7 @@ export default function App() {
   if (!hydrated) {
     return (
       <LanguageContext.Provider value={language}>
+      <AccessibilityContext.Provider value={{ textSize, highContrast, reduceMotion }}>
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle={resolvedTheme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={resolvedTheme === 'light' ? '#F4F6F1' : BG} />
         <View style={styles.loading}>
@@ -2949,12 +3395,14 @@ export default function App() {
           <Text style={styles.muted}>Loading your fitness platform...</Text>
         </View>
       </SafeAreaView>
+      </AccessibilityContext.Provider>
       </LanguageContext.Provider>
     );
   }
 
   return (
     <LanguageContext.Provider value={language}>
+    <AccessibilityContext.Provider value={{ textSize, highContrast, reduceMotion }}>
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle={resolvedTheme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={resolvedTheme === 'light' ? '#F4F6F1' : BG} />
       <View style={styles.content}>
@@ -3059,7 +3507,7 @@ export default function App() {
               key={t.id}
               style={styles.tab}
               onPress={() => {
-                haptic('light');
+                playSound('tap');
                 setSelectedExercise(null);
                 setTab(t.id);
               }}
@@ -3078,7 +3526,7 @@ export default function App() {
       <Modal
         visible={!!selectedFood}
         transparent
-        animationType="fade"
+        animationType={reduceMotion ? "none" : "fade"}
         onRequestClose={() => setSelectedFood(null)}
       >
         <View style={styles.modalBackdrop}>
@@ -3128,7 +3576,7 @@ export default function App() {
       <Modal
         visible={!!activeInfo}
         transparent
-        animationType="fade"
+        animationType={reduceMotion ? "none" : "fade"}
         onRequestClose={() => setActiveInfo(null)}
       >
         <View style={styles.modalBackdrop}>
@@ -3205,6 +3653,7 @@ export default function App() {
         </View>
       </Modal>
     </SafeAreaView>
+    </AccessibilityContext.Provider>
     </LanguageContext.Provider>
   );
 }
@@ -3235,15 +3684,20 @@ function Macro({ styles, label, value, goal, unit }) {
   );
 }
 
-const createStyles = (accent = GREEN, theme = 'dark') => {
-  const BG = theme === 'light' ? '#F4F6F1' : '#10120F';
-  const CARD = theme === 'light' ? '#FFFFFF' : '#1C201A';
-  const MUTED = theme === 'light' ? '#626B5D' : '#92998C';
-  const primaryText = theme === 'light' ? '#182016' : '#FFFFFF';
+const createStyles = (accent = GREEN, theme = 'dark', highContrast = false) => {
+  const light = theme === 'light';
+  const BG = light ? (highContrast ? '#FFFFFF' : '#F1F4EE') : '#10120F';
+  const CARD = light ? (highContrast ? '#FFFFFF' : '#FFFFFF') : '#1C201A';
+  const MUTED = light ? (highContrast ? '#20291D' : '#465344') : '#92998C';
+  const primaryText = light ? '#172116' : '#FFFFFF';
+  const border = light ? (highContrast ? '#394A34' : '#DCE4D7') : '#30352C';
+  const soft = light ? '#E5EDE0' : '#303D25';
+  const track = light ? '#DCE5D7' : '#343A30';
+  const textAccent = light ? (accent === '#F28AB2' ? '#963B63' : '#426522') : accent;
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: BG, width: '100%' },
   genderChoiceRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  genderChoice: { flex: 1, minWidth: 0, borderWidth: 1, borderColor: '#3A4036', borderRadius: 13, padding: 13, backgroundColor: '#171A15' },
+  genderChoice: { flex: 1, minWidth: 0, borderWidth: 1, borderColor: border, borderRadius: 13, padding: 13, backgroundColor: light ? '#FFFFFF' : '#171A15' },
   genderChoiceTitle: { color: primaryText, fontSize: 14, fontWeight: '900', marginBottom: 6 },
   content: { flex: 1, minHeight: 0, width: '100%', maxWidth: 1240, alignSelf: 'center', paddingHorizontal: 18, paddingTop: 14 },
   homeScrollContent: { paddingBottom: 24 },
@@ -3251,18 +3705,18 @@ const createStyles = (accent = GREEN, theme = 'dark') => {
   homeFeatureRowWide: { flexDirection: 'row', alignItems: 'stretch', gap: 18 },
   homeFeatureCard: { minWidth: 0 },
   desktopFeatureCard: { flex: 1, marginTop: 18, marginBottom: 14, minHeight: 190, justifyContent: 'center' },
-  profileFeatureCard: { backgroundColor: '#273322', marginTop: 18 },
+  profileFeatureCard: { backgroundColor: light ? '#EAF3E5' : '#273322', marginTop: 18 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 },
-  logo: { fontSize: 28, fontWeight: '900', color: accent, letterSpacing: 2 },
+  logo: { fontSize: 28, fontWeight: '900', color: textAccent, letterSpacing: 2 },
   homeLogo: { fontSize: 50, color: accent, letterSpacing: 3 },
-  green: { color: accent, fontWeight: '900' },
-  eyebrow: { fontSize: 9, color: accent, letterSpacing: 2, fontWeight: '900', marginBottom: 8 },
+  green: { color: textAccent, fontWeight: '900' },
+  eyebrow: { fontSize: 9, color: textAccent, letterSpacing: 2, fontWeight: '900', marginBottom: 8 },
   pageTitle: { fontSize: 30, fontWeight: '900', color: primaryText, marginTop: 8, marginBottom: 7 },
   heroTitle: { fontSize: 25, fontWeight: '900', color: primaryText, marginVertical: 10 },
   featureTitle: { fontSize: 25, fontWeight: '900', color: primaryText, marginVertical: 10 },
   heroDescription: { fontSize: 13, color: theme === 'light' ? '#465043' : '#CBD2C4', lineHeight: 20, marginBottom: 10 },
-  hero: { backgroundColor: '#252F20', borderRadius: 20, padding: 21, marginVertical: 20, overflow: 'hidden' },
+  hero: { backgroundColor: light ? '#E5F1DE' : '#252F20', borderRadius: 20, padding: 21, marginVertical: 20, overflow: 'hidden', borderWidth: light ? 1 : 0, borderColor: light ? '#C9DDBF' : 'transparent' },
   heroDecoration: { position: 'absolute', right: -5, bottom: -20, fontSize: 60, fontWeight: '900', color: '#FFFFFF08' },
   muted: { fontSize: 12, color: MUTED, lineHeight: 19 },
   card: { backgroundColor: CARD, borderRadius: 17, padding: 17, marginBottom: 14 },
@@ -3273,12 +3727,12 @@ const createStyles = (accent = GREEN, theme = 'dark') => {
   statIcon: { fontSize: 20, marginBottom: 8 },
   statNumber: { fontSize: 19, color: primaryText, fontWeight: '900', marginVertical: 3 },
   bigNumber: { fontSize: 27, color: accent, fontWeight: '900', marginVertical: 8 },
-  track: { height: 7, backgroundColor: '#343A30', borderRadius: 6, overflow: 'hidden', marginVertical: 12 },
+  track: { height: 7, backgroundColor: track, borderRadius: 6, overflow: 'hidden', marginVertical: 12 },
   fill: { height: 7, backgroundColor: accent, borderRadius: 6 },
   greenButton: { backgroundColor: accent, padding: 15, borderRadius: 11, alignItems: 'center', marginTop: 14 },
   greenButtonText: { fontSize: 11, color: '#11150D', fontWeight: '900', letterSpacing: 1 },
-  secondaryButton: { backgroundColor: '#303D25', padding: 12, borderRadius: 10, alignItems: 'center', marginTop: 12 },
-  secondaryButtonText: { fontSize: 10, color: accent, fontWeight: '900' },
+  secondaryButton: { backgroundColor: soft, borderWidth: light ? 1 : 0, borderColor: light ? '#C9DDBF' : 'transparent', padding: 12, borderRadius: 10, alignItems: 'center', marginTop: 12 },
+  secondaryButtonText: { fontSize: 10, color: textAccent, fontWeight: '900' },
   avatar: { width: 43, height: 43, borderRadius: 22, backgroundColor: CARD, borderWidth: 1, borderColor: accent, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 18, color: accent, fontWeight: '900' },
   coachCard: { backgroundColor: CARD, borderRadius: 15, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 15 },
@@ -3286,27 +3740,27 @@ const createStyles = (accent = GREEN, theme = 'dark') => {
   cardTitle: { fontSize: 14, color: primaryText, fontWeight: '900', marginBottom: 5 },
   weekRow: { flexDirection: 'row', justifyContent: 'space-between' },
   weekDay: { alignItems: 'center', gap: 8 },
-  dayDot: { width: 31, height: 31, borderRadius: 16, backgroundColor: '#30352C', alignItems: 'center', justifyContent: 'center' },
+  dayDot: { width: 31, height: 31, borderRadius: 16, backgroundColor: light ? '#E4EADF' : '#30352C', alignItems: 'center', justifyContent: 'center' },
   dayDotDone: { backgroundColor: accent },
   dayDotText: { fontSize: 11, color: primaryText, fontWeight: '900' },
   exercise: { backgroundColor: CARD, borderRadius: 13, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 9 },
   exerciseEmoji: { fontSize: 23 },
   exerciseCheck: { fontSize: 22, color: accent },
-  input: { backgroundColor: CARD, borderWidth: 1, borderColor: '#343A30', borderRadius: 11, padding: 15, color: primaryText, fontSize: 14, marginTop: 9 },
-  optionCard: { backgroundColor: CARD, borderWidth: 1, borderColor: '#30352C', borderRadius: 13, padding: 17, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  optionSelected: { borderColor: accent, backgroundColor: '#303D25' },
+  input: { backgroundColor: CARD, borderWidth: 1, borderColor: border, borderRadius: 11, padding: 15, color: primaryText, fontSize: 14, marginTop: 9 },
+  optionCard: { backgroundColor: CARD, borderWidth: 1, borderColor: border, borderRadius: 13, padding: 17, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  optionSelected: { borderColor: accent, backgroundColor: light ? '#EAF3E5' : '#303D25' },
   optionText: { color: primaryText, fontWeight: '800', fontSize: 14 },
   progressRow: { flexDirection: 'row', gap: 5, marginVertical: 18 },
   stepBar: { flex: 1, height: 5, borderRadius: 5 },
-  profileRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#30352C' },
-  profileValue: { fontSize: 12, color: accent, fontWeight: '900' },
+  profileRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: border },
+  profileValue: { fontSize: 12, color: textAccent, fontWeight: '900' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 8 },
-  chip: { backgroundColor: CARD, borderWidth: 1, borderColor: '#30352C', borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14, marginRight: 8 },
+  chip: { backgroundColor: CARD, borderWidth: 1, borderColor: border, borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14, marginRight: 8 },
   chipActive: { backgroundColor: accent, borderColor: accent },
   chipText: { fontSize: 11, color: MUTED, fontWeight: '800' },
   macroRow: { flexDirection: 'row', gap: 7 },
   macroCard: { flex: 1, backgroundColor: CARD, borderRadius: 13, padding: 11 },
-  tabBar: { height: 68, width: '100%', maxWidth: 1240, alignSelf: 'center', flexShrink: 0, backgroundColor: '#171A15', borderTopWidth: 1, borderTopColor: '#30352C', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingBottom: 5 },
+  tabBar: { height: 68, width: '100%', maxWidth: 1240, alignSelf: 'center', flexShrink: 0, backgroundColor: light ? '#FFFFFF' : '#171A15', borderTopWidth: 1, borderTopColor: border, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingBottom: 5 },
   tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
   tabIcon: { fontSize: 19, color: MUTED, marginBottom: 4 },
   tabLabel: { fontSize: 8, color: MUTED, fontWeight: '800' },
@@ -3320,44 +3774,44 @@ const createStyles = (accent = GREEN, theme = 'dark') => {
   comingSoonContent: { width: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: CARD, borderRadius: 22, padding: 28, minHeight: 380 },
   comingSoonIcon: { fontSize: 55, color: accent, marginBottom: 25 },
   comingSoonTitle: { fontSize: 30, fontWeight: '900', color: primaryText, letterSpacing: 3, marginBottom: 12 },
-  comingSoonHeading: { fontSize: 23, fontWeight: '900', color: accent, marginBottom: 16 },
+  comingSoonHeading: { fontSize: 23, fontWeight: '900', color: textAccent, marginBottom: 16 },
   comingSoonDescription: { fontSize: 14, color: theme === 'light' ? '#465043' : '#CBD2C4', lineHeight: 24, textAlign: 'center', marginBottom: 25 },
-  comingSoonBadge: { backgroundColor: '#303D25', borderRadius: 20, paddingVertical: 10, paddingHorizontal: 16 },
-  comingSoonBadgeText: { color: accent, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
-  daySelector: { backgroundColor: CARD, borderRadius: 12, padding: 13, marginRight: 8, minWidth: 68, alignItems: 'center', borderWidth: 1, borderColor: '#30352C' },
+  comingSoonBadge: { backgroundColor: soft, borderRadius: 20, paddingVertical: 10, paddingHorizontal: 16 },
+  comingSoonBadgeText: { color: textAccent, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  daySelector: { backgroundColor: CARD, borderRadius: 12, padding: 13, marginRight: 8, minWidth: 68, alignItems: 'center', borderWidth: 1, borderColor: border },
   daySelectorActive: { backgroundColor: accent, borderColor: accent },
   daySelectorText: { color: primaryText, fontWeight: '900', fontSize: 13 },
   daySelectorSub: { color: MUTED, fontSize: 8, fontWeight: '900', marginTop: 5 },
   recommendationCard: { backgroundColor: CARD, borderRadius: 15, padding: 15, marginBottom: 10 },
-  foodInfoButton: { backgroundColor: '#303D25', borderRadius: 9, paddingVertical: 11, paddingHorizontal: 12, flex: 1, alignItems: 'center' },
+  foodInfoButton: { backgroundColor: soft, borderRadius: 9, paddingVertical: 11, paddingHorizontal: 12, flex: 1, alignItems: 'center' },
   infoHeadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  infoPill: { backgroundColor: '#303D25', borderRadius: 20, paddingVertical: 7, paddingHorizontal: 10 },
-  infoPillText: { color: accent, fontSize: 9, fontWeight: '900' },
+  infoPill: { backgroundColor: soft, borderRadius: 20, paddingVertical: 7, paddingHorizontal: 10 },
+  infoPillText: { color: textAccent, fontSize: 9, fontWeight: '900' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', alignItems: 'center', padding: 16 },
   infoModalCard: { width: '100%', maxWidth: 620, maxHeight: '88%', backgroundColor: BG, borderColor: '#52663D', borderWidth: 1, borderRadius: 20, padding: 18 },
   infoModalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
   modalClose: { backgroundColor: CARD, borderRadius: 20, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  infoHighlight: { color: accent, fontSize: 25, fontWeight: '900', marginVertical: 6 },
+  infoHighlight: { color: textAccent, fontSize: 25, fontWeight: '900', marginVertical: 6 },
   foodAddButton: { backgroundColor: accent, borderRadius: 9, paddingVertical: 11, paddingHorizontal: 12, flex: 1, alignItems: 'center' },
   foodAddText: { color: '#11150D', fontSize: 9, fontWeight: '900' },
-  foodDetailCard: { backgroundColor: '#222A1E', borderRadius: 17, borderWidth: 1, borderColor: '#52663D', padding: 16, marginBottom: 16 },
-  foodDetailHeading: { color: accent, fontSize: 12, fontWeight: '900', marginTop: 15, marginBottom: 6 },
+  foodDetailCard: { backgroundColor: light ? '#FFFFFF' : '#222A1E', borderRadius: 17, borderWidth: 1, borderColor: light ? border : '#52663D', padding: 16, marginBottom: 16 },
+  foodDetailHeading: { color: textAccent, fontSize: 12, fontWeight: '900', marginTop: 15, marginBottom: 6 },
   foodMacroGrid: { flexDirection: 'row', gap: 7, marginTop: 14 },
   foodMacro: { flex: 1, minWidth: 0, backgroundColor: CARD, borderRadius: 10, padding: 9, alignItems: 'center' },
   foodTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 5 },
-  foodTag: { backgroundColor: '#303D25', borderRadius: 16, paddingVertical: 7, paddingHorizontal: 10 },
-  foodTagText: { color: accent, fontSize: 10, fontWeight: '800' },
-  recommendationTiming: { color: accent, fontSize: 10, fontWeight: '900', marginTop: 10, marginBottom: 5 },
+  foodTag: { backgroundColor: soft, borderRadius: 16, paddingVertical: 7, paddingHorizontal: 10 },
+  foodTagText: { color: textAccent, fontSize: 10, fontWeight: '800' },
+  recommendationTiming: { color: textAccent, fontSize: 10, fontWeight: '900', marginTop: 10, marginBottom: 5 },
   groupGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  groupChip: { backgroundColor: '#30352C', borderRadius: 18, paddingVertical: 9, paddingHorizontal: 12 },
+  groupChip: { backgroundColor: light ? '#E5EADF' : '#30352C', borderRadius: 18, paddingVertical: 9, paddingHorizontal: 12 },
   groupChipActive: { backgroundColor: accent },
   groupChipText: { color: primaryText, fontSize: 11, fontWeight: '800' },
   timerNumber: { fontSize: 48, color: accent, fontWeight: '900', textAlign: 'center', marginVertical: 15 },
-  dividerLine: { height: 1, backgroundColor: '#343A30', marginVertical: 15 },
+  dividerLine: { height: 1, backgroundColor: border, marginVertical: 15 },
   smallNote: { fontSize: 11, color: MUTED, lineHeight: 19, marginVertical: 15 },
   infoToggle: { backgroundColor: CARD, borderRadius: 14, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   instructionLine: { color: theme === 'light' ? '#465043' : '#CBD2C4', fontSize: 12, lineHeight: 21, marginBottom: 7 },
-  miniChartValue: { color: accent, fontSize: 9, fontWeight: '900' },
+  miniChartValue: { color: textAccent, fontSize: 9, fontWeight: '900' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', marginTop: 18 },
   calendarCell: { width: '14.2857%', height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 9, marginBottom: 3 },
   calendarCellText: { color: primaryText, fontSize: 12, fontWeight: '800' },
@@ -3368,6 +3822,8 @@ const createStyles = (accent = GREEN, theme = 'dark') => {
   calendarDone: { backgroundColor: accent },
   calendarPlanned: { backgroundColor: '#8AA7F5' },
   calendarMissed: { backgroundColor: '#E58B7F' },
-  calendarLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, flexWrap: 'wrap' }
+  calendarLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, flexWrap: 'wrap' },
+  calendarLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 8, marginBottom: 5 },
+  calendarLegendDot: { width: 7, height: 7, borderRadius: 4 }
   });
 };
