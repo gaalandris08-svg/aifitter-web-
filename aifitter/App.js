@@ -84,7 +84,7 @@ const HU = {
   'Your fitness profile':'Fitneszprofilod', 'Your personal information and goals.':'Személyes adataid és céljaid.',
   'Complete your profile to personalize your experience.':'Töltsd ki a profilod a személyre szabott élményért.',
   'EDIT PROFILE':'PROFIL SZERKESZTÉSE', 'SET UP MY PROFILE':'PROFIL BEÁLLÍTÁSA', 'Goal':'Cél', 'Body type':'Testalkat', 'Age':'Életkor', 'Height':'Magasság', 'Weight':'Testsúly', 'Experience':'Edzettségi szint', 'Training days':'Edzésnapok', 'Equipment':'Felszerelés',
-  'Your account level':'Fiókszinted', 'Settings':'Beállítások', 'APP':'ALKALMAZÁS', 'Version 2.2 · Your personal fitness platform.':'2.2 verzió · Személyes fitneszplatform.',
+  'Your account level':'Fiókszinted', 'Settings':'Beállítások', 'APP':'ALKALMAZÁS', 'Version 2.3 · Your personal fitness platform.':'2.3 verzió · Személyes fitneszplatform.',
   'VIEW MY PROGRESS →':'FEJLŐDÉSEM MEGTEKINTÉSE →', 'OPEN AI COACH →':'AI EDZŐ MEGNYITÁSA →', 'RESET APP DATA':'ALKALMAZÁS ADATAINAK TÖRLÉSE',
   'HOME':'KEZDŐLAP', 'Home':'Kezdőlap', 'Workout':'Edzés', 'Nutrition':'Táplálkozás', 'Stretch':'Nyújtás', 'Calendar':'Naptár',
   'PERSONALIZATION':'SZEMÉLYRE SZABÁS', 'CLOSE ✕':'BEZÁRÁS ✕', 'STEP':'LÉPÉS', 'OF':'/',
@@ -262,7 +262,7 @@ Object.assign(HU, {
   'No strength records for this exercise yet.':'Ehhez a gyakorlathoz még nincs rögzített erőnléti adat.',
   'Choose exercise to view':'Válassz gyakorlatot a megtekintéshez', 'Log your strength progress':'Rögzítsd az erőnléti fejlődésedet',
   'Your fitness profile':'Fitneszprofilod', 'Your personal information and goals.':'Személyes adataid és céljaid.',
-  'Version 2.2 · Your personal fitness platform.':'2.2 verzió · Személyes fitneszplatform.',
+  'Version 2.3 · Your personal fitness platform.':'2.3 verzió · Személyes fitneszplatform.',
   'Build mobility, recover and move comfortably.':'Fejleszd a mobilitásod, regenerálódj és mozogj kényelmesen.',
   'Track your food and understand your daily intake.':'Kövesd az étkezéseidet és ismerd meg a napi tápanyagbeviteledet.',
   'Build strength. Track progress. Improve every day.':'Építs erőt. Kövesd a fejlődésed. Fejlődj minden nap.',
@@ -1012,6 +1012,15 @@ export default function App() {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [weeklySummaryEnabled, setWeeklySummaryEnabled] = useState(true);
+  const [rewardedAchievementIds, setRewardedAchievementIds] = useState([]);
+  const [mealSchedule, setMealSchedule] = useState({
+    weekday: { Breakfast: true, Lunch: true, Dinner: true, Snacks: true, Fruit: true },
+    weekend: { Breakfast: true, Lunch: true, Dinner: true, Snacks: true, Fruit: true },
+    customDays: {}
+  });
+  const [mealScheduleDate, setMealScheduleDate] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 1); return dateKey(d);
+  });
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportDataText, setExportDataText] = useState('');
   const [profileGender, setProfileGender] = useState('male');
@@ -1123,6 +1132,31 @@ export default function App() {
   ]);
 
   const today = todayKey();
+  const mealCategoryNames = ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Fruit'];
+  const getMealRoutine = dateKeyValue => {
+    const d = new Date(`${dateKeyValue}T12:00:00`);
+    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+    const base = isWeekend ? mealSchedule.weekend : mealSchedule.weekday;
+    return { ...base, ...(mealSchedule.customDays[dateKeyValue] || {}) };
+  };
+  const updateMealRoutine = (dateKeyValue, category, enabled) => {
+    const d = new Date(`${dateKeyValue}T12:00:00`);
+    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+    setMealSchedule(previous => {
+      const base = isWeekend ? previous.weekend : previous.weekday;
+      const current = { ...base, ...(previous.customDays[dateKeyValue] || {}) };
+      return {
+        ...previous,
+        customDays: { ...previous.customDays, [dateKeyValue]: { ...current, [category]: enabled } }
+      };
+    });
+  };
+  const updateBaseMealRoutine = (routineKey, category, enabled) => {
+    setMealSchedule(previous => ({
+      ...previous,
+      [routineKey]: { ...previous[routineKey], [category]: enabled }
+    }));
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -1150,6 +1184,15 @@ export default function App() {
           setReduceMotion(!!d.reduceMotion);
           setSoundEnabled(d.soundEnabled !== false);
           setWeeklySummaryEnabled(d.weeklySummaryEnabled !== false);
+          setRewardedAchievementIds(Array.isArray(d.rewardedAchievementIds) ? d.rewardedAchievementIds : []);
+          if (d.mealSchedule && typeof d.mealSchedule === 'object') {
+            const allOn = { Breakfast: true, Lunch: true, Dinner: true, Snacks: true, Fruit: true };
+            setMealSchedule({
+              weekday: { ...allOn, ...(d.mealSchedule.weekday || {}) },
+              weekend: { ...allOn, ...(d.mealSchedule.weekend || {}) },
+              customDays: d.mealSchedule.customDays && typeof d.mealSchedule.customDays === 'object' ? d.mealSchedule.customDays : {}
+            });
+          }
           setProfileGender(d.profileGender === 'female' ? 'female' : 'male');
           setProfileChoiceLocked(d.profileChoiceLocked !== undefined ? !!d.profileChoiceLocked : !!d.profileComplete);
           setGenderProfiles(d.genderProfiles && typeof d.genderProfiles === 'object' ? d.genderProfiles : {});
@@ -1189,7 +1232,7 @@ export default function App() {
       weightEntries, xp, workoutLogs, foodEntries, savedFoods, savedMeals,
       goalCalories, goalProtein, goalWater, goalCarbs, goalFat, glassSizeMl, themeMode,
       restSeconds, allergies, foodPreference, mealsPerDay, weightUnit, heightUnit, volumeUnit,
-      textSize, highContrast, reduceMotion, soundEnabled, weeklySummaryEnabled,
+      textSize, highContrast, reduceMotion, soundEnabled, weeklySummaryEnabled, mealSchedule, rewardedAchievementIds, rewardedAchievementIds,
       strengthLogs, stretchDone, language, selectedTrainingDays, profileGender, profileChoiceLocked,
       genderProfiles: { ...genderProfiles, [profileGender]: { answers, muscleFocus, profileComplete, selectedTrainingDays, goalCalories, goalProtein, goalWater, goalCarbs, goalFat } }
     })).catch(e => console.log('Save error:', e));
@@ -1198,7 +1241,7 @@ export default function App() {
     weightEntries, xp, workoutLogs, foodEntries, savedMeals,
     goalCalories, goalProtein, goalWater, goalCarbs, goalFat, glassSizeMl, themeMode,
     restSeconds, allergies, foodPreference, mealsPerDay, weightUnit, heightUnit, volumeUnit,
-    textSize, highContrast, reduceMotion, soundEnabled, weeklySummaryEnabled,
+    textSize, highContrast, reduceMotion, soundEnabled, weeklySummaryEnabled, mealSchedule,
     strengthLogs, stretchDone, language, selectedTrainingDays, profileGender, profileChoiceLocked, genderProfiles, goalCalories, goalProtein, goalWater, goalCarbs, goalFat
   ]);
 
@@ -1289,6 +1332,18 @@ export default function App() {
   const unlocked = achievements.filter(a =>
     a.target ? workoutCount >= a.target : streak >= a.streak
   ).length;
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const newlyUnlocked = achievements.filter(a =>
+      (a.target ? workoutCount >= a.target : streak >= a.streak) &&
+      !rewardedAchievementIds.includes(a.id)
+    );
+    if (!newlyUnlocked.length) return;
+    setRewardedAchievementIds(previous => [...new Set([...previous, ...newlyUnlocked.map(a => a.id)])]);
+    setXp(previous => previous + newlyUnlocked.length * 25);
+    playSound('achievement');
+  }, [hydrated, workoutCount, streak, rewardedAchievementIds]);
 
   const todayFood = foodEntries.filter(f => f.date === today);
   const totals = todayFood.reduce((a, f) => ({
@@ -1858,7 +1913,8 @@ export default function App() {
     setFoodEntries(p => [...p, {
       ...meal,
       id: String(Date.now()),
-      date: today
+      date: today,
+      category: meal.category || 'Snacks'
     }]);
     setXp(p => p + 5);
     playSound('success');
@@ -1907,6 +1963,7 @@ export default function App() {
     setStrengthLogs(p => [...p, {
       id: String(Date.now()),
       date: today,
+      category: meal.category || 'Snacks',
       exercise: strengthForm.exercise.trim(),
       weight,
       reps,
@@ -2296,7 +2353,22 @@ export default function App() {
     </ScrollView>
   );
 
-  const nutritionScreen = () => (
+  const nutritionScreen = () => {
+    const remainingCalories = Math.max(0, goalCalories - totals.calories);
+    const remainingProtein = Math.max(0, goalProtein - totals.protein);
+    const remainingCarbs = Math.max(0, goalCarbs - totals.carbs);
+    const remainingFat = Math.max(0, goalFat - totals.fat);
+    const smartSuggestions = snackRecommendations
+      .map(meal => {
+        const calorieFit = remainingCalories > 0 ? Math.abs(remainingCalories - meal.calories) / Math.max(remainingCalories, 250) : meal.calories / 250;
+        const proteinFit = remainingProtein > 0 ? Math.abs(remainingProtein - meal.protein) / Math.max(remainingProtein, 20) : meal.protein / 20;
+        const carbFit = remainingCarbs > 0 ? Math.abs(remainingCarbs - meal.carbs) / Math.max(remainingCarbs, 25) : meal.carbs / 25;
+        const fatFit = remainingFat > 0 ? Math.abs(remainingFat - meal.fat) / Math.max(remainingFat, 10) : meal.fat / 10;
+        return { ...meal, _fitScore: calorieFit + proteinFit * 1.5 + carbFit * 0.6 + fatFit * 0.4 };
+      })
+      .sort((a, b) => a._fitScore - b._fitScore)
+      .slice(0, 3);
+    return (
     <ScrollView showsVerticalScrollIndicator={false}>
       <Text style={styles.eyebrow}>FUEL YOUR BODY</Text>
       <Text style={styles.pageTitle}>Nutrition</Text>
@@ -2387,9 +2459,9 @@ export default function App() {
           <TextInput value={mealForm.name} onChangeText={v => setMealForm(p => ({ ...p, name: v }))} placeholder={language === 'hu' ? 'Étkezés neve, pl. Csirkés rizs' : 'Meal name, e.g. Chicken and rice'} placeholderTextColor={MUTED} style={styles.input} />
           <Text style={styles.muted}>{language === 'hu' ? 'Kategória' : 'Category'}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>
-            {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map(category => (
+            {['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Fruit'].map(category => (
               <TouchableOpacity key={category} onPress={() => setMealForm(p => ({ ...p, category }))} style={[styles.chip, mealForm.category === category && styles.chipActive, { marginRight: 7, marginBottom: 7 }]}>
-                <Text style={[styles.chipText, mealForm.category === category && { color: '#11150D' }]}>{language === 'hu' ? ({ Breakfast: 'Reggeli', Lunch: 'Ebéd', Dinner: 'Vacsora', Snacks: 'Snackek' }[category]) : category}</Text>
+                <Text style={[styles.chipText, mealForm.category === category && { color: '#11150D' }]}>{language === 'hu' ? ({ Breakfast: 'Reggeli', Lunch: 'Ebéd', Dinner: 'Vacsora', Snacks: 'Snackek', Fruit: 'Gyümölcs' }[category]) : category}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -2400,12 +2472,12 @@ export default function App() {
           {button(language === 'hu' ? 'ÉTKEZÉS MENTÉSE →' : 'SAVE MY MEAL →', savePersonalMeal)}
         </>
       )}
-      {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map(category => {
+      {['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Fruit'].map(category => {
         const categoryMeals = savedMeals.filter(meal => meal.category === category);
         if (!categoryMeals.length) return null;
         return (
           <View key={category} style={{ marginBottom: 12 }}>
-            <Text style={styles.cardTitle}>{language === 'hu' ? ({ Breakfast: 'Reggeli', Lunch: 'Ebéd', Dinner: 'Vacsora', Snacks: 'Snackek' }[category]) : category}</Text>
+            <Text style={styles.cardTitle}>{language === 'hu' ? ({ Breakfast: 'Reggeli', Lunch: 'Ebéd', Dinner: 'Vacsora', Snacks: 'Snackek', Fruit: 'Gyümölcs' }[category]) : category}</Text>
             {categoryMeals.map(meal => (
               <View key={meal.id} style={styles.exercise}>
                 <View style={{ flex: 1 }}>
@@ -2421,6 +2493,37 @@ export default function App() {
       })}
       {savedMeals.length === 0 && <Text style={styles.muted}>{language === 'hu' ? 'Még nincs elmentett étkezésed. Hozd létre az elsőt fent!' : 'You have no saved meals yet. Create your first one above!'}</Text>}
 
+      {(() => {
+        const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowDate = dateKey(tomorrow);
+        const tomorrowRoutine = getMealRoutine(tomorrowDate);
+        const tomorrowMeals = mealCategoryNames.filter(category => tomorrowRoutine[category]).map((category, index) => {
+          const personal = savedMeals.find(meal => meal.category === category);
+          const preset = mealPresets[index % mealPresets.length];
+          const suggestion = personal || preset;
+          return { category, suggestion };
+        });
+        return <>
+          {heading(language === 'hu' ? 'Holnapi étkezési terved' : 'Tomorrow’s meal plan', formatDate(tomorrowDate, language === 'hu' ? 'hu-HU' : 'en-US'))}
+          {card(<>
+            <Text style={styles.muted}>{language === 'hu' ? 'A beállított étkezési rutinod alapján.' : 'Based on your saved meal routine.'}</Text>
+            {tomorrowMeals.length === 0
+              ? <Text style={styles.muted}>{language === 'hu' ? 'Holnapra minden étkezési ajánlás ki van kapcsolva.' : 'All meal recommendations are turned off for tomorrow.'}</Text>
+              : tomorrowMeals.map(({ category, suggestion }) => (
+                <View key={category} style={styles.profileRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cardTitle}>{language === 'hu' ? ({Breakfast:'Reggeli',Lunch:'Ebéd',Dinner:'Vacsora',Snacks:'Snack',Fruit:'Gyümölcs'})[category] : category}</Text>
+                    <Text style={styles.muted}>{suggestion.name} · {suggestion.calories} kcal</Text>
+                  </View>
+                  {personal && <TouchableOpacity onPress={() => addPersonalMealToDiary(personal)}><Text style={styles.green}>+ {language === 'hu' ? 'NAPLÓ' : 'ADD'}</Text></TouchableOpacity>}
+                </View>
+              ))
+            }
+            <TouchableOpacity onPress={() => setTab('Settings')} style={{ marginTop: 12 }}><Text style={styles.green}>{language === 'hu' ? 'ÉTKEZÉSI RUTIN SZERKESZTÉSE →' : 'EDIT MEAL ROUTINE →'}</Text></TouchableOpacity>
+          </>)}
+        </>;
+      })()}
+
       {heading('Snack & meal recommendations', 'PERSONALIZED IDEAS')}
       {card(
         <>
@@ -2434,7 +2537,7 @@ export default function App() {
         </>
       )}
 
-      {snackRecommendations.map((meal, i) => (
+      {smartSuggestions.map((meal, i) => (
         <View key={i} style={styles.recommendationCard}>
           <View style={styles.row}>
             <Text style={styles.cardTitle}>{meal.name}</Text>
@@ -2589,9 +2692,14 @@ export default function App() {
         <View key={f.id} style={styles.exercise}>
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>{f.name}</Text>
+            <Text style={styles.muted}>{language === 'hu' ? ({Breakfast:'Reggeli',Lunch:'Ebéd',Dinner:'Vacsora',Snacks:'Snack',Fruit:'Gyümölcs'})[f.category || 'Snacks'] : (f.category || 'Snacks')}</Text>
             <Text style={styles.muted}>
               {f.grams ? `${f.grams} g · ` : ''}{f.calories} kcal · P {f.protein}g · C {f.carbs}g · F {f.fat}g
             </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 7 }}>
+              <TouchableOpacity onPress={() => setFoodEntries(previous => previous.map(item => item.id !== f.id ? item : ({ ...item, grams: item.grams ? Math.max(1, Math.round(item.grams * 0.5)) : item.grams, calories: Math.round(Number(item.calories || 0) * 0.5), protein: Math.round(Number(item.protein || 0) * 5) / 10, carbs: Math.round(Number(item.carbs || 0) * 5) / 10, fat: Math.round(Number(item.fat || 0) * 5) / 10 })))}><Text style={styles.green}>½ {language === 'hu' ? 'ADAG' : 'PORTION'}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setFoodEntries(previous => previous.map(item => item.id !== f.id ? item : ({ ...item, grams: item.grams ? Math.round(item.grams * 2) : item.grams, calories: Math.round(Number(item.calories || 0) * 2), protein: Math.round(Number(item.protein || 0) * 20) / 10, carbs: Math.round(Number(item.carbs || 0) * 20) / 10, fat: Math.round(Number(item.fat || 0) * 20) / 10 })))}><Text style={styles.green}>2× {language === 'hu' ? 'ADAG' : 'PORTION'}</Text></TouchableOpacity>
+            </View>
             <TouchableOpacity onPress={() => setSelectedFood(f)} style={{ paddingTop: 6 }}><Text style={styles.green}>ⓘ FOOD INFO</Text></TouchableOpacity>
           </View>
           <TouchableOpacity onPress={() => setFoodEntries(p => p.filter(x => x.id !== f.id))}>
@@ -2619,7 +2727,8 @@ export default function App() {
       )}
       <View style={{ height: 30 }} />
     </ScrollView>
-  );
+    );
+  };
 
   const stretchingScreen = () => {
     const currentStretch = activeRoutine[activeStretchIndex];
@@ -3088,7 +3197,7 @@ export default function App() {
       {card(
         <>
           <Text style={styles.cardTitle}>BIFIT</Text>
-          <Text style={styles.muted}>Version 2.2 · Your personal fitness platform.</Text>
+          <Text style={styles.muted}>Version 2.3 · Your personal fitness platform.</Text>
           <Text style={[styles.cardTitle,{marginTop:16}]}>{language==='hu'?'Alkalmazás nyelve':'App language'}</Text>
           <View style={styles.row}>
             {button('🇬🇧 English',()=>setLanguage('en'),language!=='en')}
@@ -3133,6 +3242,7 @@ export default function App() {
                 setWater(0);
                 setWeightEntries([]);
                 setXp(0);
+                setRewardedAchievementIds([]);
                 setWorkoutLogs([]);
                 setFoodEntries([]);
                 setStrengthLogs([]);
@@ -3285,7 +3395,45 @@ export default function App() {
         </>)}
 
         {card(<>
-          <Text style={styles.cardTitle}>{settingTitle('6. Mértékegységek', '6. Units')}</Text>
+          <Text style={styles.cardTitle}>{settingTitle('6. Étkezési rutin', '6. Smart Meal Schedule')}</Text>
+          <Text style={styles.muted}>{settingTitle('Állítsd be, mely étkezésekhez kérsz ajánlásokat. A hétköznapi és hétvégi alap rutin külön működik; az egyedi napok saját, külön mentett másolatok.', 'Choose which meal recommendations you want. Weekday and weekend base routines are separate; custom days are saved as independent copies.')}</Text>
+          {['weekday', 'weekend'].map(key => (
+            <View key={key} style={{ marginTop: 12 }}>
+              <Text style={styles.cardTitle}>{key === 'weekday' ? settingTitle('Hétköznapi alap rutin', 'Weekday base routine') : settingTitle('Hétvégi alap rutin', 'Weekend base routine')}</Text>
+              {mealCategoryNames.map(category => (
+                <TouchableOpacity key={category} onPress={() => updateBaseMealRoutine(key, category, !(mealSchedule[key]?.[category] !== false))} style={styles.row}>
+                  <Text style={styles.muted}>{settingTitle(({Breakfast:'Reggeli',Lunch:'Ebéd',Dinner:'Vacsora',Snacks:'Snackek',Fruit:'Gyümölcs'})[category], category)}</Text>
+                  <Text style={styles.green}>{mealSchedule[key]?.[category] !== false ? '✓ ON' : '○ OFF'}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ))}
+          <View style={styles.dividerLine}/>
+          <Text style={styles.cardTitle}>{settingTitle('Egyedi nap szerkesztése', 'Edit an individual day')}</Text>
+          <Text style={styles.muted}>{settingTitle('Válassz egy napot a következő 14 napból. Alapból az adott hétköznapi vagy hétvégi rutin másolatát kapja; a módosítás csak erre a napra érvényes.', 'Choose a day in the next 14 days. It starts as a copy of its weekday or weekend routine; changes affect only that date.')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+            {Array.from({ length: 14 }, (_, i) => {
+              const d = new Date(); d.setDate(d.getDate() + i + 1); const key = dateKey(d);
+              return <TouchableOpacity key={key} onPress={() => setMealScheduleDate(key)} style={[styles.chip, mealScheduleDate === key && styles.chipActive]}>
+                <Text style={[styles.chipText, mealScheduleDate === key && { color: '#11150D' }]}>{d.toLocaleDateString(isHu ? 'hu-HU' : 'en-US', { weekday: 'short', day: 'numeric' })}</Text>
+              </TouchableOpacity>;
+            })}
+          </View>
+          <Text style={[styles.cardTitle, { marginTop: 8 }]}>{formatDate(mealScheduleDate, isHu ? 'hu-HU' : 'en-US')}</Text>
+          {mealCategoryNames.map(category => (
+            <TouchableOpacity key={category} onPress={() => updateMealRoutine(mealScheduleDate, category, !getMealRoutine(mealScheduleDate)[category])} style={styles.row}>
+              <Text style={styles.muted}>{settingTitle(({Breakfast:'Reggeli',Lunch:'Ebéd',Dinner:'Vacsora',Snacks:'Snackek',Fruit:'Gyümölcs'})[category], category)}</Text>
+              <Text style={styles.green}>{getMealRoutine(mealScheduleDate)[category] ? '✓ ON' : '○ OFF'}</Text>
+            </TouchableOpacity>
+          ))}
+          {button(settingTitle('EGYEDI NAP VISSZAÁLLÍTÁSA AZ ALAP RUTINRA', 'RESET DAY TO BASE ROUTINE'), () => setMealSchedule(previous => {
+            const next = { ...previous.customDays }; delete next[mealScheduleDate];
+            return { ...previous, customDays: next };
+          }), true)}
+        </>)}
+
+        {card(<>
+          <Text style={styles.cardTitle}>{settingTitle('7. Mértékegységek', '7. Units')}</Text>
           <Text style={styles.muted}>{settingTitle('Válaszd ki a számodra kényelmes mértékegységeket.', 'Choose your preferred measurement units.')}</Text>
           <Text style={[styles.cardTitle, { marginTop: 10 }]}>{settingTitle('Testsúly', 'Weight')}</Text>
           <View style={styles.row}>{pill('kg', weightUnit === 'kg', () => setWeightUnit('kg'))}{pill('lb', weightUnit === 'lb', () => setWeightUnit('lb'))}</View>
@@ -3297,7 +3445,7 @@ export default function App() {
         </>)}
 
         {card(<>
-          <Text style={styles.cardTitle}>{settingTitle('7. Akadálymentesség', '7. Accessibility')}</Text>
+          <Text style={styles.cardTitle}>{settingTitle('8. Akadálymentesség', '8. Accessibility')}</Text>
           <Text style={styles.cardTitle}>{settingTitle('Szövegméret', 'Text size')}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
             {[
@@ -3312,14 +3460,14 @@ export default function App() {
         </>)}
 
         {card(<>
-          <Text style={styles.cardTitle}>{settingTitle('8. Hanghatások', '8. Sound Effects')}</Text>
+          <Text style={styles.cardTitle}>{settingTitle('9. Hanghatások', '9. Sound Effects')}</Text>
           {toggleRow(settingTitle('Hanghatások', 'Sound effects'), settingTitle('Rövid hangjelzések gombnyomáskor és fontos eseményeknél.', 'Play short sounds for button presses and key events.'), soundEnabled, setSoundEnabled)}
           {button(settingTitle('HANG TESZTELÉSE', 'TEST SOUND'), () => playSound('success'), true)}
           <Text style={styles.muted}>{settingTitle('A hang lejátszása az eszköz és a böngésző támogatásától függ. iPhone-on előfordulhat, hogy a néma mód vagy a böngésző beállításai korlátozzák.', 'Playback depends on device and browser support. On iPhone, Silent Mode or browser settings may limit sound.')}</Text>
         </>)}
 
         {card(<>
-          <Text style={styles.cardTitle}>{settingTitle('9. Heti összefoglaló', '9. Weekly Summary')}</Text>
+          <Text style={styles.cardTitle}>{settingTitle('10. Heti összefoglaló', '10. Weekly Summary')}</Text>
           {toggleRow(settingTitle('Heti aktivitási összefoglaló', 'Weekly activity summary'), settingTitle('Az összefoglaló megjelenítése itt a Beállításokban.', 'Show your activity summary here in Settings.'), weeklySummaryEnabled, setWeeklySummaryEnabled)}
           {weeklySummaryEnabled && <>
             <View style={styles.profileRow}><Text style={styles.muted}>{settingTitle('Edzések az elmúlt 7 napban', 'Workouts in the last 7 days')}</Text><Text style={styles.profileValue}>{weeklyWorkouts}</Text></View>
@@ -3329,7 +3477,7 @@ export default function App() {
         </>)}
 
         {card(<>
-          <Text style={styles.cardTitle}>{settingTitle('10. Adatvédelem és adatok', '10. Privacy & Data')}</Text>
+          <Text style={styles.cardTitle}>{settingTitle('11. Adatvédelem és adatok', '11. Privacy & Data')}</Text>
           <Text style={styles.muted}>{settingTitle('Az adataid ezen az eszközön, helyi tárhelyen kerülnek mentésre.', 'Your data is stored locally on this device.')}</Text>
           {button(settingTitle('ADATOK EXPORTÁLÁSA', 'EXPORT MY DATA'), () => {
             setExportDataText(JSON.stringify(exportPayload, null, 2));
@@ -3339,9 +3487,9 @@ export default function App() {
         </>)}
 
         {card(<>
-          <Text style={styles.cardTitle}>{settingTitle('11. A BIFIT-ről', '11. About BIFIT')}</Text>
+          <Text style={styles.cardTitle}>{settingTitle('12. A BIFIT-ről', '12. About BIFIT')}</Text>
           <Text style={styles.bigNumber}>BIFIT</Text>
-          <Text style={styles.muted}>Version 2.2</Text>
+          <Text style={styles.muted}>Version 2.3</Text>
           <Text style={styles.muted}>{settingTitle('Személyes fitneszplatform edzéskövetéshez, táplálkozáshoz és fejlődéshez.', 'Your personal fitness platform for training, nutrition and progress tracking.')}</Text>
           <Text style={styles.muted}>{settingTitle('Az alkalmazásban szereplő célértékek becslések, nem helyettesítik szakember tanácsát.', 'Targets shown in the app are estimates and do not replace professional advice.')}</Text>
         </>)}
